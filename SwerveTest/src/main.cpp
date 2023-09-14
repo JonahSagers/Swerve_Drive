@@ -29,6 +29,8 @@ rotation RotationBR = rotation(PORT11, false);
 //sad
 rotation RotationFR = rotation(PORT15, false);
 
+inertial Inertial = inertial(PORT16);
+
 int rc_auto_loop_function_Controller1();
 
 competition Competition;
@@ -36,35 +38,50 @@ competition Competition;
 float targetDirection;
 float rotationOffset;
 float avgDif;
+bool BLDirec;
+bool FLDirec;
+bool BRDirec;
+bool FRDirec;
 
 void pre_auton(void) {
   // Initializing Robot Configuration. DO NOT REMOVE!
   vexcodeInit();
+  Brain.Screen.print(color::red);
   RotationBL.setPosition(0, rev);
   RotationFL.setPosition(0, rev);
   RotationBR.setPosition(0, rev);
   RotationFR.setPosition(0, rev);
+  Inertial.setRotation(0, rev);
+  Inertial.calibrate();
+  while(Inertial.isCalibrating()){
+    wait(100, msec);
+  }
   Brain.Screen.print(color::cyan);
   // All activities that occur before the competition starts
   // Example: clearing encoders, setting servo positions, ...
 }
 
 void autonomous(void) {
-  Brain.Screen.clearScreen(color::green);
+  Brain.Screen.clearScreen(color::cyan);
 
   // ..........................................................................
   // Insert autonomous user code here.
   // ..........................................................................
 }
 
+float clamp(float target){
+  if(target > 180){
+    target -= 360;
+  } else if(target < -180){
+    target += 360;
+  }
+  return target;
+}
+
 void correctDrive(motor currentMotor, rotation currentRot){
   float currentDirection = fmod((currentRot.position(rev)/7 * 3) * 360,360);
-  float difDirection = (currentDirection - targetDirection);
-  if(difDirection > 180){
-    difDirection -= 360;
-  } else if(difDirection < -180){
-    difDirection += 360;
-  }
+  float difDirection = (currentDirection - (targetDirection + Inertial.rotation(degrees)));
+  difDirection = clamp(difDirection);
   avgDif += fabs(difDirection);
   if(fabs(difDirection) > 1){
     currentMotor.setVelocity(fabs(difDirection), percent);
@@ -79,17 +96,18 @@ void correctDrive(motor currentMotor, rotation currentRot){
 }
 
 void usercontrol(void) {
-  Brain.Screen.clearScreen(color::red);
+  Brain.Screen.clearScreen(color::green);
   // User control code here, inside the loop
   while(1) {
-    float xInput = Controller1.Axis3.position();
-    float yInput = Controller1.Axis4.position();
+    //x and y are swapped for a reason
+    float xInput = -Controller1.Axis4.position();
+    float yInput = -Controller1.Axis3.position();
     float magnitude = ((xInput/100) * (xInput/100) + (yInput/100) * (yInput/100)) * 100;
     //FIX THIS MATH ON SITE JONAH DO IT OR ELSE
     //actually it's a problem for later
     targetDirection = atan2(xInput,yInput)* 180.0 / 3.14159265 + 180;
     Brain.Screen.clearLine(0);
-    Brain.Screen.print(RotationBR.position(rev));
+    Brain.Screen.print(Inertial.rotation(degrees));
     avgDif = 0;
     correctDrive(TurnBL, RotationBL);
     correctDrive(TurnFL, RotationFL);

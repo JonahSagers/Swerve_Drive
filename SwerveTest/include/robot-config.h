@@ -16,7 +16,11 @@ extern motor TurnBR;
 extern motor TurnFR;
 extern motor_group DriveTrain;
 extern motor_group TurnTrain;
-extern rotation Rotation;
+extern rotation RotationBL;
+extern rotation RotationFL;
+extern rotation RotationBR;
+extern rotation RotationFR;
+extern inertial Inertial;
 /**
  * Used to initialize code/tasks/devices added using tools in VEXcode Pro.
  * 
