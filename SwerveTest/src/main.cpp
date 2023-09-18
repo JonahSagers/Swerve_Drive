@@ -38,10 +38,10 @@ competition Competition;
 float targetDirection;
 float rotationOffset;
 float avgDif;
-bool BLDirec;
-bool FLDirec;
-bool BRDirec;
-bool FRDirec;
+directionType DirecBL;
+directionType DirecFL;
+directionType DirecBR;
+directionType DirecFR;
 
 void pre_auton(void) {
   // Initializing Robot Configuration. DO NOT REMOVE!
@@ -78,9 +78,33 @@ float clamp(float target){
   return target;
 }
 
-void correctDrive(motor currentMotor, rotation currentRot){
+void correctDrive(motor currentMotor, rotation currentRot, directionType orient){
   float currentDirection = fmod((currentRot.position(rev)/7 * 3) * 360,360);
+  currentDirection = clamp(currentDirection);
   float difDirection = (currentDirection - (targetDirection + Inertial.rotation(degrees)));
+  if(fabs(clamp(difDirection)) > fabs(clamp(difDirection - 180))){
+    difDirection -= 180;
+    //Jonah if you leave in four nested if statements I will crucify you
+    if(orient == DirecBL){
+      DirecBL = reverse;
+    } else if(orient == DirecFL){
+      DirecFL = reverse;
+    } else if(orient == DirecBR){
+      DirecBR = reverse;
+    } else if(orient == DirecFR){
+      DirecFR = reverse;
+    }
+  } else {
+    if(orient == DirecBL){
+      DirecBL = forward;
+    } else if(orient == DirecFL){
+      DirecFL = forward;
+    } else if(orient == DirecBR){
+      DirecBR = forward;
+    } else if(orient == DirecFR){
+      DirecFR = forward;
+    }
+  }
   difDirection = clamp(difDirection);
   avgDif += fabs(difDirection);
   if(fabs(difDirection) > 1){
@@ -100,32 +124,37 @@ void usercontrol(void) {
   // User control code here, inside the loop
   while(1) {
     //x and y are swapped for a reason
-    float xInput = -Controller1.Axis4.position();
+    float xInput = Controller1.Axis4.position();
     float yInput = -Controller1.Axis3.position();
-    float magnitude = ((xInput/100) * (xInput/100) + (yInput/100) * (yInput/100)) * 100;
+    float magnitude = sqrt((xInput * xInput + yInput * yInput));
     //FIX THIS MATH ON SITE JONAH DO IT OR ELSE
     //actually it's a problem for later
     targetDirection = atan2(xInput,yInput)* 180.0 / 3.14159265 + 180;
     Brain.Screen.clearLine(0);
-    Brain.Screen.print(Inertial.rotation(degrees));
+    Brain.Screen.print("test");
     avgDif = 0;
-    correctDrive(TurnBL, RotationBL);
-    correctDrive(TurnFL, RotationFL);
-    correctDrive(TurnBR, RotationBR);
-    correctDrive(TurnFR, RotationFR);
+    correctDrive(TurnBL, RotationBL, DirecBL);
+    correctDrive(TurnFL, RotationFL, DirecFL);
+    correctDrive(TurnBR, RotationBR, DirecBR);
+    correctDrive(TurnFR, RotationFR, DirecFR);
     avgDif /= 4;
     if(magnitude > 10){
-      //turn motors to face the joystick direction
-      
       //move motors
-      DriveTrain.setVelocity((magnitude - avgDif)/4, percent);
+      float speed = (magnitude - avgDif)/4;
+      DriveBL.setVelocity(speed, percent);
+      DriveFL.setVelocity(speed, percent);
+      DriveBR.setVelocity(speed, percent);
+      DriveFR.setVelocity(speed, percent);
       //magnitude - avgDif is potentially problematic because the cutoff changes based on magnitude
-      DriveTrain.spin(forward);
+      DriveBL.spin(DirecBL);
+      DriveFL.spin(DirecFL);
+      DriveBR.spin(DirecBR);
+      DriveFR.spin(DirecFR);
     } else {
       DriveTrain.stop();
       TurnTrain.stop();
     }
-    wait(100, msec); // 1000 divided by wait duration = refresh rate of the code
+    wait(20, msec); // 1000 divided by wait duration = refresh rate of the code
                     // for example, 20 msec = 50hz refresh rate
   }
 }
