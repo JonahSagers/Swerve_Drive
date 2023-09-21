@@ -37,6 +37,8 @@ competition Competition;
 
 float targetDirection;
 float rotationOffset;
+float magnitude;
+float turnMagnitude;
 float avgDif;
 directionType DirecBL;
 directionType DirecFL;
@@ -78,30 +80,38 @@ float clamp(float target){
   return target;
 }
 
-void correctDrive(motor currentMotor, rotation currentRot, directionType orient){
+void correctDrive(motor currentMotor, rotation currentRot, int orient, int turnOffset){
   float currentDirection = fmod((currentRot.position(rev)/7 * 3) * 360,360);
+  float difDirection;
   currentDirection = clamp(currentDirection);
-  float difDirection = (currentDirection - (targetDirection + Inertial.rotation(degrees)));
-  if(fabs(clamp(difDirection)) > fabs(clamp(difDirection - 180))){
+  if(magnitude > 10 && turnMagnitude < 10){
+    difDirection = (currentDirection - clamp((targetDirection + clamp(fmod(Inertial.rotation(degrees),360)))));
+  } else if(magnitude < 10 && turnMagnitude > 10){
+    difDirection = (currentDirection - turnOffset);
+  } else {
+    difDirection = 0;
+  }
+  
+  if(fabs(clamp(difDirection)) > fabs(clamp(clamp(difDirection) - 180))){
     difDirection -= 180;
     //Jonah if you leave in four nested if statements I will crucify you
-    if(orient == DirecBL){
+    if(orient == 0){
       DirecBL = reverse;
-    } else if(orient == DirecFL){
+    } else if(orient == 1){
       DirecFL = reverse;
-    } else if(orient == DirecBR){
+    } else if(orient == 2){
       DirecBR = reverse;
-    } else if(orient == DirecFR){
+    } else if(orient == 3){
       DirecFR = reverse;
     }
   } else {
-    if(orient == DirecBL){
+    if(orient == 0){
       DirecBL = forward;
-    } else if(orient == DirecFL){
+    } else if(orient == 1){
       DirecFL = forward;
-    } else if(orient == DirecBR){
+    } else if(orient == 2){
       DirecBR = forward;
-    } else if(orient == DirecFR){
+    } else if(orient == 3){
       DirecFR = forward;
     }
   }
@@ -126,21 +136,33 @@ void usercontrol(void) {
     //x and y are swapped for a reason
     float xInput = Controller1.Axis4.position();
     float yInput = -Controller1.Axis3.position();
-    float magnitude = sqrt((xInput * xInput + yInput * yInput));
+    turnMagnitude = Controller1.Axis1.position();
+    magnitude = sqrt((xInput * xInput + yInput * yInput));
     //FIX THIS MATH ON SITE JONAH DO IT OR ELSE
     //actually it's a problem for later
     targetDirection = atan2(xInput,yInput)* 180.0 / 3.14159265 + 180;
     Brain.Screen.clearLine(0);
-    Brain.Screen.print("test");
+    Brain.Screen.print(turnMagnitude);
     avgDif = 0;
-    correctDrive(TurnBL, RotationBL, DirecBL);
-    correctDrive(TurnFL, RotationFL, DirecFL);
-    correctDrive(TurnBR, RotationBR, DirecBR);
-    correctDrive(TurnFR, RotationFR, DirecFR);
+    correctDrive(TurnBL, RotationBL, 0, 225);
+    correctDrive(TurnFL, RotationFL, 1, 135);
+    correctDrive(TurnBR, RotationBR, 2, 315);
+    correctDrive(TurnFR, RotationFR, 3, 45);
     avgDif /= 4;
-    if(magnitude > 10){
+    if(magnitude > 10 && turnMagnitude < 10){
       //move motors
-      float speed = (magnitude - avgDif)/4;
+      float speed = magnitude/(1 + avgDif/100);
+      DriveBL.setVelocity(speed, percent);
+      DriveFL.setVelocity(speed, percent);
+      DriveBR.setVelocity(speed, percent);
+      DriveFR.setVelocity(speed, percent);
+      //magnitude - avgDif is potentially problematic because the cutoff changes based on magnitude
+      DriveBL.spin(DirecBL);
+      DriveFL.spin(DirecFL);
+      DriveBR.spin(DirecBR);
+      DriveFR.spin(DirecFR);
+    } else if(magnitude < 10 && turnMagnitude > 10){
+      float speed = turnMagnitude - avgDif * 10;
       DriveBL.setVelocity(speed, percent);
       DriveFL.setVelocity(speed, percent);
       DriveBR.setVelocity(speed, percent);
