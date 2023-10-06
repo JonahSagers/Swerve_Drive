@@ -80,18 +80,27 @@ float clamp(float target){
   return target;
 }
 
-void correctDrive(motor currentMotor, rotation currentRot, int orient, int turnOffset){
+void correctDrive(motor currentMotor, rotation currentRot, int orient, int turnOffset, int turnOffset2){
+  //get wheel rotation
   float currentDirection = fmod((currentRot.position(rev)/7 * 3) * 360,360);
   float difDirection;
   currentDirection = clamp(currentDirection);
-  if(magnitude > 10 && turnMagnitude < 10){
-    difDirection = (currentDirection - clamp((targetDirection + clamp(fmod(Inertial.rotation(degrees),360)))));
-  } else if(magnitude < 10 && turnMagnitude > 10){
+  //check if the robot should be in turn mode
+  if(magnitude < 10 && fabs(turnMagnitude) > 10){
+    //in turn mode, the wheels always face a set direction.  No target directions are needed
     difDirection = (currentDirection - turnOffset);
+  } else if(magnitude > 10 && fabs(turnMagnitude) < 10){
+    //in drive mode, use both the rotation sensor and the joystick input to find the right direction to face
+    //this is what makes the robot "field-centric"
+    difDirection = (currentDirection - clamp(targetDirection));
+    // + clamp(fmod(Inertial.heading(degrees),360))
+  } else if(magnitude > 10 && fabs(turnMagnitude) > 10) {
+    difDirection = (currentDirection - clamp(targetDirection + ((turnMagnitude * 0.45) * (cos((targetDirection + turnOffset2) * (3.14159/180))))));
   } else {
     difDirection = 0;
   }
-  
+  //Determine the proper drive directions
+  //This code is bad. Like really bad. Leave it out of the notebook until it's better
   if(fabs(clamp(difDirection)) > fabs(clamp(clamp(difDirection) - 180))){
     difDirection -= 180;
     //Jonah if you leave in four nested if statements I will crucify you
@@ -115,9 +124,15 @@ void correctDrive(motor currentMotor, rotation currentRot, int orient, int turnO
       DirecFR = forward;
     }
   }
+  //Determine which way the drive needs to rotate to reach the target direction
   difDirection = clamp(difDirection);
+  //find the average difference in drive rotations
+  //this makes sure the drive will not move unless everything is facing the right direction
+  //without it, the drive would damage itself
   avgDif += fabs(difDirection);
   if(fabs(difDirection) > 1){
+    //set drive speed based on the distance the drive needs to turn
+    //this way, it will slow down before reaching the target and not overshoot
     currentMotor.setVelocity(fabs(difDirection), percent);
     if(difDirection > 0){
       currentMotor.spin(forward);
@@ -133,41 +148,52 @@ void usercontrol(void) {
   Brain.Screen.clearScreen(color::green);
   // User control code here, inside the loop
   while(1) {
-    //x and y are swapped for a reason
+    //x and y had to be swapped because of how vex handles axes
     float xInput = Controller1.Axis4.position();
     float yInput = -Controller1.Axis3.position();
-    turnMagnitude = Controller1.Axis1.position();
+    turnMagnitude = -Controller1.Axis1.position();
+    //find the magnitude of the left stick
     magnitude = sqrt((xInput * xInput + yInput * yInput));
-    //FIX THIS MATH ON SITE JONAH DO IT OR ELSE
-    //actually it's a problem for later
+    //find the direction the stick is pointed in
     targetDirection = atan2(xInput,yInput)* 180.0 / 3.14159265 + 180;
-    Brain.Screen.clearLine(0);
-    Brain.Screen.print(turnMagnitude);
     avgDif = 0;
-    correctDrive(TurnBL, RotationBL, 0, 225);
-    correctDrive(TurnFL, RotationFL, 1, 135);
-    correctDrive(TurnBR, RotationBR, 2, 315);
-    correctDrive(TurnFR, RotationFR, 3, 45);
+    //run the function to correct each drive
+    //since each wheel is handled separately, it can correct for being knocked around and desynced
+    correctDrive(TurnBL, RotationBL, 0, 225, 225);
+    correctDrive(TurnFL, RotationFL, 1, 135, 315);
+    correctDrive(TurnBR, RotationBR, 2, 315, 135);
+    correctDrive(TurnFR, RotationFR, 3, 45, 45);
     avgDif /= 4;
-    if(magnitude > 10 && turnMagnitude < 10){
+    //check if the drive should be in turn mode
+    //each drive mode has a different drive function, to account for little differences
+    //in the end, if they're still identical I'll merge them to cut down on spaghetti code
+    if(magnitude > 10 && fabs(turnMagnitude) < 10){
       //move motors
-      float speed = magnitude/(1 + avgDif/100);
+      float speed = magnitude;
       DriveBL.setVelocity(speed, percent);
       DriveFL.setVelocity(speed, percent);
       DriveBR.setVelocity(speed, percent);
       DriveFR.setVelocity(speed, percent);
-      //magnitude - avgDif is potentially problematic because the cutoff changes based on magnitude
       DriveBL.spin(DirecBL);
       DriveFL.spin(DirecFL);
       DriveBR.spin(DirecBR);
       DriveFR.spin(DirecFR);
-    } else if(magnitude < 10 && turnMagnitude > 10){
-      float speed = turnMagnitude - avgDif * 10;
+    } else if(magnitude < 10 && fabs(turnMagnitude) > 10){
+      float speed = turnMagnitude/(1 + avgDif/25);
       DriveBL.setVelocity(speed, percent);
       DriveFL.setVelocity(speed, percent);
       DriveBR.setVelocity(speed, percent);
       DriveFR.setVelocity(speed, percent);
-      //magnitude - avgDif is potentially problematic because the cutoff changes based on magnitude
+      DriveBL.spin(DirecBL);
+      DriveFL.spin(DirecFL);
+      DriveBR.spin(DirecBR);
+      DriveFR.spin(DirecFR);
+    } else if(magnitude > 10 && fabs(turnMagnitude) > 10){
+      float speed = magnitude/1.5;
+      DriveBL.setVelocity(speed * (1 - 0.5 * (cos((targetDirection + 90 * (turnMagnitude/100) + 225) * (3.14159/180)))), percent);
+      DriveFL.setVelocity(speed * (1 - 0.5 * (cos((targetDirection + 90 * (turnMagnitude/100) + 315) * (3.14159/180)))), percent);
+      DriveBR.setVelocity(speed * (1 - 0.5 * (cos((targetDirection + 90 * (turnMagnitude/100) + 135) * (3.14159/180)))), percent);
+      DriveFR.setVelocity(speed * (1 - 0.5 * (cos((targetDirection + 90 * (turnMagnitude/100) + 45) * (3.14159/180)))), percent);
       DriveBL.spin(DirecBL);
       DriveFL.spin(DirecFL);
       DriveBR.spin(DirecBR);
