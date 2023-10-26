@@ -18,6 +18,10 @@ motor TurnFL = motor(PORT2, ratio6_1, true);
 //sad
 motor TurnBR = motor(PORT14, ratio6_1, true);
 motor TurnFR = motor(PORT4, ratio6_1, true);
+//unassigned motors are placeholdered at 20
+motor Intake = motor(PORT19, ratio6_1, false);
+motor Flywheel = motor(PORT20, ratio6_1, true);
+digital_out PnuIntake = digital_out(Brain.ThreeWirePort.G);
 
 motor_group DriveTrain = motor_group(DriveBL, DriveFL, DriveBR, DriveFR);
 motor_group TurnTrain = motor_group(TurnBL, TurnFL, TurnBR, TurnFR);
@@ -44,6 +48,8 @@ directionType DirecBL;
 directionType DirecFL;
 directionType DirecBR;
 directionType DirecFR;
+int intakeState;
+int flywheelState;
 
 void pre_auton(void) {
   // Initializing Robot Configuration. DO NOT REMOVE!
@@ -58,6 +64,7 @@ void pre_auton(void) {
   while(Inertial.isCalibrating()){
     wait(100, msec);
   }
+  PnuIntake = true;
   Brain.Screen.print(color::cyan);
   // All activities that occur before the competition starts
   // Example: clearing encoders, setting servo positions, ...
@@ -78,6 +85,28 @@ float clamp(float target){
     target += 360;
   }
   return target;
+}
+
+void toggleIntake(){
+  if(intakeState == false){
+    Intake.spin(forward);
+    Intake.setVelocity(100, percent);
+    intakeState = true;
+  } else {
+    Intake.stop();
+    intakeState = false;
+  }
+}
+
+void toggleFlywheel(){
+  if(flywheelState == false){
+    Flywheel.spin(forward);
+    Flywheel.setVelocity(100, percent);
+    flywheelState = true;
+  } else {
+    Flywheel.stop();
+    flywheelState = false;
+  }
 }
 
 void correctDrive(motor currentMotor, rotation currentRot, int orient, int turnOffset, int turnOffset2){
@@ -146,6 +175,9 @@ void correctDrive(motor currentMotor, rotation currentRot, int orient, int turnO
 
 void usercontrol(void) {
   Brain.Screen.clearScreen(color::green);
+  //Controller1.ButtonR2.pressed(toggleIntake);
+  //Adrian doesn't want an intake toggle
+  Controller1.ButtonUp.pressed(toggleFlywheel);
   // User control code here, inside the loop
   while(1) {
     //x and y had to be swapped because of how vex handles axes
@@ -155,7 +187,7 @@ void usercontrol(void) {
     //find the magnitude of the left stick
     magnitude = sqrt((xInput * xInput + yInput * yInput));
     //find the direction the stick is pointed in
-    targetDirection = atan2(xInput,yInput)* 180.0 / 3.14159265 + 180;
+    targetDirection = fmod(atan2(xInput,yInput)* 180.0 / 3.14159265 + 180,360);
     avgDif = 0;
     //run the function to correct each drive
     //since each wheel is handled separately, it can correct for being knocked around and desynced
@@ -170,30 +202,21 @@ void usercontrol(void) {
     if(magnitude > 10 && fabs(turnMagnitude) < 10){
       //move motors
       float speed = magnitude;
-      DriveBL.setVelocity(speed, percent);
-      DriveFL.setVelocity(speed, percent);
-      DriveBR.setVelocity(speed, percent);
-      DriveFR.setVelocity(speed, percent);
+      DriveTrain.setVelocity(speed, percent);
       DriveBL.spin(DirecBL);
       DriveFL.spin(DirecFL);
       DriveBR.spin(DirecBR);
       DriveFR.spin(DirecFR);
     } else if(magnitude < 10 && fabs(turnMagnitude) > 10){
       float speed = turnMagnitude/(1 + avgDif/25);
-      DriveBL.setVelocity(speed, percent);
-      DriveFL.setVelocity(speed, percent);
-      DriveBR.setVelocity(speed, percent);
-      DriveFR.setVelocity(speed, percent);
+      DriveTrain.setVelocity(speed, percent);
       DriveBL.spin(DirecBL);
       DriveFL.spin(DirecFL);
       DriveBR.spin(DirecBR);
       DriveFR.spin(DirecFR);
     } else if(magnitude > 10 && fabs(turnMagnitude) > 10){
-      float speed = magnitude/1.5;
-      DriveBL.setVelocity(speed * (1 - 0.5 * (cos((targetDirection + 90 * (turnMagnitude/100) + 225) * (3.14159/180)))), percent);
-      DriveFL.setVelocity(speed * (1 - 0.5 * (cos((targetDirection + 90 * (turnMagnitude/100) + 315) * (3.14159/180)))), percent);
-      DriveBR.setVelocity(speed * (1 - 0.5 * (cos((targetDirection + 90 * (turnMagnitude/100) + 135) * (3.14159/180)))), percent);
-      DriveFR.setVelocity(speed * (1 - 0.5 * (cos((targetDirection + 90 * (turnMagnitude/100) + 45) * (3.14159/180)))), percent);
+      float speed = magnitude;
+      DriveTrain.setVelocity(speed, percent);
       DriveBL.spin(DirecBL);
       DriveFL.spin(DirecFL);
       DriveBR.spin(DirecBR);
@@ -202,6 +225,15 @@ void usercontrol(void) {
       DriveTrain.stop();
       TurnTrain.stop();
     }
+    if(Controller1.ButtonR2.pressing()){
+      Intake.setVelocity(100, percent);
+      Intake.spin(forward);
+      intakeState = true;
+    } else {
+      Intake.stop();
+      intakeState = false;
+    }
+    //button state measures whether the button is pressed, so that the function doesn't trigger every frame
     wait(20, msec); // 1000 divided by wait duration = refresh rate of the code
                     // for example, 20 msec = 50hz refresh rate
   }
