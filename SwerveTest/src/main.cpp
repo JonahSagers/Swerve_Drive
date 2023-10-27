@@ -64,18 +64,9 @@ void pre_auton(void) {
   while(Inertial.isCalibrating()){
     wait(100, msec);
   }
-  PnuIntake = true;
   Brain.Screen.print(color::cyan);
   // All activities that occur before the competition starts
   // Example: clearing encoders, setting servo positions, ...
-}
-
-void autonomous(void) {
-  Brain.Screen.clearScreen(color::cyan);
-
-  // ..........................................................................
-  // Insert autonomous user code here.
-  // ..........................................................................
 }
 
 float clamp(float target){
@@ -111,6 +102,7 @@ void toggleFlywheel(){
 
 void correctDrive(motor currentMotor, rotation currentRot, int orient, int turnOffset, int turnOffset2){
   //get wheel rotation
+  PnuIntake = true;
   float currentDirection = fmod((currentRot.position(rev)/7 * 3) * 360,360);
   float difDirection;
   currentDirection = clamp(currentDirection);
@@ -173,11 +165,26 @@ void correctDrive(motor currentMotor, rotation currentRot, int orient, int turnO
   }
 }
 
+void autonomous(void) {
+  Brain.Screen.clearScreen(color::cyan);
+  PnuIntake = true;
+  Flywheel.spin(forward);
+  Flywheel.setVelocity(100, percent);
+  flywheelState = true;
+  // ..........................................................................
+  // Insert autonomous user code here.
+  // ..........................................................................
+}
+
 void usercontrol(void) {
   Brain.Screen.clearScreen(color::green);
   //Controller1.ButtonR2.pressed(toggleIntake);
   //Adrian doesn't want an intake toggle
   Controller1.ButtonUp.pressed(toggleFlywheel);
+  //Flywheel should start in the on state
+  Flywheel.spin(forward);
+  Flywheel.setVelocity(100, percent);
+  flywheelState = true;
   // User control code here, inside the loop
   while(1) {
     //x and y had to be swapped because of how vex handles axes
