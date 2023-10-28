@@ -19,8 +19,8 @@ motor TurnFL = motor(PORT2, ratio6_1, true);
 motor TurnBR = motor(PORT14, ratio6_1, true);
 motor TurnFR = motor(PORT4, ratio6_1, true);
 //unassigned motors are placeholdered at 20
-motor Intake = motor(PORT19, ratio6_1, false);
-motor Flywheel = motor(PORT20, ratio6_1, true);
+motor Intake = motor(PORT16, ratio6_1, false);
+motor Flywheel = motor(PORT19, ratio6_1, true);
 digital_out PnuIntake = digital_out(Brain.ThreeWirePort.G);
 
 motor_group DriveTrain = motor_group(DriveBL, DriveFL, DriveBR, DriveFR);
@@ -33,7 +33,7 @@ rotation RotationBR = rotation(PORT11, false);
 //sad
 rotation RotationFR = rotation(PORT15, false);
 
-inertial Inertial = inertial(PORT16);
+inertial Inertial = inertial(PORT21);
 
 int rc_auto_loop_function_Controller1();
 
