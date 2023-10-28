@@ -21,7 +21,7 @@ motor TurnFR = motor(PORT4, ratio6_1, true);
 //unassigned motors are placeholdered at 20
 motor Intake = motor(PORT16, ratio6_1, false);
 motor Flywheel = motor(PORT19, ratio6_1, true);
-digital_out PnuIntake = digital_out(Brain.ThreeWirePort.G);
+digital_out PnuIntake = digital_out(Brain.ThreeWirePort.A);
 
 motor_group DriveTrain = motor_group(DriveBL, DriveFL, DriveBR, DriveFR);
 motor_group TurnTrain = motor_group(TurnBL, TurnFL, TurnBR, TurnFR);
