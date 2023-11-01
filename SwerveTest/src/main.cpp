@@ -7,8 +7,8 @@ controller Controller1 = controller(primary);
 brain  Brain;
 
 //motors are notated by position.  For example, BL = back left
-motor DriveBL = motor(PORT5, ratio6_1, true);
-motor DriveFL = motor(PORT6, ratio6_1, true);
+motor DriveBL = motor(PORT6, ratio6_1, true);
+motor DriveFL = motor(PORT5, ratio6_1, true);
 motor DriveBR = motor(PORT7, ratio6_1, true);
 motor DriveFR = motor(PORT8, ratio6_1, true);
 
@@ -92,7 +92,7 @@ void toggleIntake(){
 void toggleFlywheel(){
   if(flywheelState == false){
     Flywheel.spin(forward);
-    Flywheel.setVelocity(100, percent);
+    Flywheel.setVelocity(65, percent);
     flywheelState = true;
   } else {
     Flywheel.stop();
@@ -168,9 +168,6 @@ void correctDrive(motor currentMotor, rotation currentRot, int orient, int turnO
 void autonomous(void) {
   Brain.Screen.clearScreen(color::cyan);
   PnuIntake = true;
-  Flywheel.spin(forward);
-  Flywheel.setVelocity(100, percent);
-  flywheelState = true;
   // ..........................................................................
   // Insert autonomous user code here.
   // ..........................................................................
@@ -183,8 +180,11 @@ void usercontrol(void) {
   Controller1.ButtonUp.pressed(toggleFlywheel);
   //Flywheel should start in the on state
   Flywheel.spin(forward);
-  Flywheel.setVelocity(100, percent);
+  Flywheel.setVelocity(65, percent);
   flywheelState = true;
+  PnuIntake = false;
+  wait(20, msec);
+  PnuIntake = true;
   // User control code here, inside the loop
   while(1) {
     //x and y had to be swapped because of how vex handles axes
@@ -194,7 +194,7 @@ void usercontrol(void) {
     //find the magnitude of the left stick
     magnitude = sqrt((xInput * xInput + yInput * yInput));
     //find the direction the stick is pointed in
-    targetDirection = fmod(atan2(xInput,yInput)* 180.0 / 3.14159265 + 180,360);
+    targetDirection = atan2(xInput,yInput)* 180.0 / 3.14159265 + 180;
     avgDif = 0;
     //run the function to correct each drive
     //since each wheel is handled separately, it can correct for being knocked around and desynced
@@ -222,8 +222,11 @@ void usercontrol(void) {
       DriveBR.spin(DirecBR);
       DriveFR.spin(DirecFR);
     } else if(magnitude > 10 && fabs(turnMagnitude) > 10){
-      float speed = magnitude;
-      DriveTrain.setVelocity(speed, percent);
+      float speed = magnitude/1.5;
+      DriveBL.setVelocity(speed * (1 - 0.25 * (cos((targetDirection + 90 * (turnMagnitude/100) + 225) * (3.14159/180)))), percent);
+      DriveFL.setVelocity(speed * (1 - 0.25 * (cos((targetDirection + 90 * (turnMagnitude/100) + 315) * (3.14159/180)))), percent);
+      DriveBR.setVelocity(speed * (1 - 0.25 * (cos((targetDirection + 90 * (turnMagnitude/100) + 135) * (3.14159/180)))), percent);
+      DriveFR.setVelocity(speed * (1 - 0.25 * (cos((targetDirection + 90 * (turnMagnitude/100) + 45) * (3.14159/180)))), percent);
       DriveBL.spin(DirecBL);
       DriveFL.spin(DirecFL);
       DriveBR.spin(DirecBR);
@@ -235,6 +238,10 @@ void usercontrol(void) {
     if(Controller1.ButtonR2.pressing()){
       Intake.setVelocity(100, percent);
       Intake.spin(forward);
+      intakeState = true;
+    } else if(Controller1.ButtonR1.pressing()){
+      Intake.setVelocity(100, percent);
+      Intake.spin(reverse);
       intakeState = true;
     } else {
       Intake.stop();
