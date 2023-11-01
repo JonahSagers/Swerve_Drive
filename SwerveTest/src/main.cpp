@@ -44,6 +44,8 @@ float rotationOffset;
 float magnitude;
 float turnMagnitude;
 float avgDif;
+float xRotPoint;
+float yRotPoint;
 directionType DirecBL;
 directionType DirecFL;
 directionType DirecBR;
@@ -179,9 +181,10 @@ void usercontrol(void) {
   //Adrian doesn't want an intake toggle
   Controller1.ButtonUp.pressed(toggleFlywheel);
   //Flywheel should start in the on state
-  Flywheel.spin(forward);
-  Flywheel.setVelocity(65, percent);
-  flywheelState = true;
+  //But not during development.  Uncomment this for comp
+  // Flywheel.spin(forward);
+  // Flywheel.setVelocity(65, percent);
+  // flywheelState = true;
   PnuIntake = false;
   wait(20, msec);
   PnuIntake = true;
@@ -191,6 +194,8 @@ void usercontrol(void) {
     float xInput = Controller1.Axis4.position();
     float yInput = -Controller1.Axis3.position();
     turnMagnitude = -Controller1.Axis1.position();
+    xRotPoint = sin(xInput) * turnMagnitude;
+    yRotPoint = -cos(xInput) * turnMagnitude;
     //find the magnitude of the left stick
     magnitude = sqrt((xInput * xInput + yInput * yInput));
     //find the direction the stick is pointed in
