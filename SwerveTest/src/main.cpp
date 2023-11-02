@@ -102,23 +102,24 @@ void toggleFlywheel(){
   }
 }
 
-void correctDrive(motor currentMotor, rotation currentRot, int orient, int turnOffset, int turnOffset2){
+void correctDrive(motor currentMotor, rotation currentRot, int orient, int turnOffset, int turnOffset2, int x, int y){
   //get wheel rotation
   PnuIntake = true;
   float currentDirection = fmod((currentRot.position(rev)/7 * 3) * 360,360);
   float difDirection;
   currentDirection = clamp(currentDirection);
   //check if the robot should be in turn mode
-  if(magnitude < 10 && fabs(turnMagnitude) > 10){
+  if(magnitude < 1 && fabs(turnMagnitude) > 1){
     //in turn mode, the wheels always face a set direction.  No target directions are needed
     difDirection = (currentDirection - turnOffset);
-  } else if(magnitude > 10 && fabs(turnMagnitude) < 10){
+  } else if(magnitude > 1 && fabs(turnMagnitude) < 1){
     //in drive mode, use both the rotation sensor and the joystick input to find the right direction to face
     //this is what makes the robot "field-centric"
     difDirection = (currentDirection - clamp(targetDirection));
     // + clamp(fmod(Inertial.heading(degrees),360))
-  } else if(magnitude > 10 && fabs(turnMagnitude) > 10) {
-    difDirection = (currentDirection - clamp(targetDirection + ((turnMagnitude * 0.45) * (cos((targetDirection + turnOffset2) * (3.14159/180))))));
+  } else if(magnitude > 1 && fabs(turnMagnitude) > 1) {
+    // difDirection = (currentDirection - clamp(targetDirection + ((turnMagnitude * 0.45) * (cos((targetDirection + turnOffset2) * (3.14159/180))))));
+    difDirection = clamp(currentDirection + clamp((atan2((xRotPoint - x),(yRotPoint - y))) * 180/3.14159265) + 90);
   } else {
     difDirection = 0;
   }
@@ -194,20 +195,24 @@ void usercontrol(void) {
     float xInput = Controller1.Axis4.position();
     float yInput = -Controller1.Axis3.position();
     turnMagnitude = -Controller1.Axis1.position();
-    xRotPoint = sin(xInput) * turnMagnitude;
-    yRotPoint = -cos(xInput) * turnMagnitude;
-    //find the magnitude of the left stick
-    magnitude = sqrt((xInput * xInput + yInput * yInput));
     //find the direction the stick is pointed in
     targetDirection = atan2(xInput,yInput)* 180.0 / 3.14159265 + 180;
+    //find the magnitude of the left stick
+    magnitude = sqrt((xInput * xInput + yInput * yInput));
+    xRotPoint = -sin(targetDirection * 3.14159265/180 + 1.570796325) * (turnMagnitude/20);
+    yRotPoint = -cos(targetDirection * 3.14159265/180 + 1.570796325) * (turnMagnitude/20);
     avgDif = 0;
     //run the function to correct each drive
     //since each wheel is handled separately, it can correct for being knocked around and desynced
-    correctDrive(TurnBL, RotationBL, 0, 225, 225);
-    correctDrive(TurnFL, RotationFL, 1, 135, 315);
-    correctDrive(TurnBR, RotationBR, 2, 315, 135);
-    correctDrive(TurnFR, RotationFR, 3, 45, 45);
+    correctDrive(TurnBL, RotationBL, 0, 225, 225, -1, -1);
+    correctDrive(TurnFL, RotationFL, 1, 135, 315, -1, 1);
+    correctDrive(TurnBR, RotationBR, 2, 315, 135, 1, -1);
+    correctDrive(TurnFR, RotationFR, 3, 45, 45, 1, 1);
     avgDif /= 4;
+    // printf("%f|", xRotPoint);
+    // printf("%f|", yRotPoint);
+    printf("%f\n", (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint + 1,2)))));
+
     //check if the drive should be in turn mode
     //each drive mode has a different drive function, to account for little differences
     //in the end, if they're still identical I'll merge them to cut down on spaghetti code
@@ -227,11 +232,10 @@ void usercontrol(void) {
       DriveBR.spin(DirecBR);
       DriveFR.spin(DirecFR);
     } else if(magnitude > 10 && fabs(turnMagnitude) > 10){
-      float speed = magnitude/1.5;
-      DriveBL.setVelocity(speed * (1 - 0.25 * (cos((targetDirection + 90 * (turnMagnitude/100) + 225) * (3.14159/180)))), percent);
-      DriveFL.setVelocity(speed * (1 - 0.25 * (cos((targetDirection + 90 * (turnMagnitude/100) + 315) * (3.14159/180)))), percent);
-      DriveBR.setVelocity(speed * (1 - 0.25 * (cos((targetDirection + 90 * (turnMagnitude/100) + 135) * (3.14159/180)))), percent);
-      DriveFR.setVelocity(speed * (1 - 0.25 * (cos((targetDirection + 90 * (turnMagnitude/100) + 45) * (3.14159/180)))), percent);
+      DriveBL.setVelocity(2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint + 1,2)))), percent);
+      DriveFL.setVelocity(2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint - 1,2)))), percent);
+      DriveBR.setVelocity(2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint + 1,2)))), percent);
+      DriveFR.setVelocity(2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint - 1,2)))), percent);
       DriveBL.spin(DirecBL);
       DriveFL.spin(DirecFL);
       DriveBR.spin(DirecBR);
