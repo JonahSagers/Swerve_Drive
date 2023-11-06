@@ -80,6 +80,17 @@ float clamp(float target){
   return target;
 }
 
+float sign(float target){
+  if(target > 0){
+    target = 1;
+  } else if(target < 0){
+    target = -1;
+  } else {
+    target = 0;
+  }
+  return target;
+}
+
 void toggleIntake(){
   if(intakeState == false){
     Intake.spin(forward);
@@ -109,15 +120,12 @@ void correctDrive(motor currentMotor, rotation currentRot, int orient, int turnO
   float difDirection;
   currentDirection = clamp(currentDirection);
   //check if the robot should be in turn mode
-  if(magnitude < 1 && fabs(turnMagnitude) > 1){
-    //in turn mode, the wheels always face a set direction.  No target directions are needed
-    difDirection = (currentDirection - turnOffset);
-  } else if(magnitude > 1 && fabs(turnMagnitude) < 1){
+  if(magnitude > 10 && fabs(turnMagnitude) < 10){
     //in drive mode, use both the rotation sensor and the joystick input to find the right direction to face
     //this is what makes the robot "field-centric"
     difDirection = (currentDirection - clamp(targetDirection));
     // + clamp(fmod(Inertial.heading(degrees),360))
-  } else if(magnitude > 1 && fabs(turnMagnitude) > 1) {
+  } else if(fabs(turnMagnitude) > 10) {
     // difDirection = (currentDirection - clamp(targetDirection + ((turnMagnitude * 0.45) * (cos((targetDirection + turnOffset2) * (3.14159/180))))));
     difDirection = clamp(currentDirection + clamp((atan2((xRotPoint - x),(yRotPoint - y))) * 180/3.14159265) + 90);
   } else {
@@ -199,8 +207,8 @@ void usercontrol(void) {
     targetDirection = atan2(xInput,yInput)* 180.0 / 3.14159265 + 180;
     //find the magnitude of the left stick
     magnitude = sqrt((xInput * xInput + yInput * yInput));
-    xRotPoint = -sin(fabs(targetDirection) * 3.14159265/180 + 1.570796325) * (magnitude/20);
-    yRotPoint = cos(fabs(targetDirection) * 3.14159265/180 + 1.570796325) * (magnitude/20);
+    xRotPoint = -sin(fabs(targetDirection) * 3.14159265/180 + 1.570796325) * (magnitude/20) * sign(turnMagnitude);
+    yRotPoint = cos(fabs(targetDirection) * 3.14159265/180 + 1.570796325) * (magnitude/20) * sign(turnMagnitude);
     //coefficient goes up to 8
     avgDif = 0;
     //run the function to correct each drive
@@ -212,7 +220,7 @@ void usercontrol(void) {
     avgDif /= 4;
     // printf("%f|", xRotPoint);
     // printf("%f|", yRotPoint);
-    printf("%f\n", (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint + 1,2)))));
+    printf("%f\n", (2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint + 1,2))))));
 
     //check if the drive should be in turn mode
     //each drive mode has a different drive function, to account for little differences
@@ -225,22 +233,15 @@ void usercontrol(void) {
       DriveFL.spin(DirecFL);
       DriveBR.spin(DirecBR);
       DriveFR.spin(DirecFR);
-    } else if(magnitude < 10 && fabs(turnMagnitude) > 10){
-      float speed = turnMagnitude/(1 + avgDif/25);
-      DriveTrain.setVelocity(speed, percent);
+    } else if(fabs(turnMagnitude) > 10){
+      DriveBL.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint + 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
+      DriveFL.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint - 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
+      DriveBR.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint + 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
+      DriveFR.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint - 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
       DriveBL.spin(DirecBL);
       DriveFL.spin(DirecFL);
       DriveBR.spin(DirecBR);
-      DriveFR.spin(DirecFR);
-    } else if(magnitude > 10 && fabs(turnMagnitude) > 10){
-      DriveBL.setVelocity(2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint + 1,2)))) * (turnMagnitude/fabs(turnMagnitude)), percent);
-      DriveFL.setVelocity(2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint - 1,2)))) * (turnMagnitude/fabs(turnMagnitude)), percent);
-      DriveBR.setVelocity(2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint + 1,2)))) * (turnMagnitude/fabs(turnMagnitude)), percent);
-      DriveFR.setVelocity(2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint - 1,2)))) * (turnMagnitude/fabs(turnMagnitude)), percent);
-      DriveBL.spin(DirecBL);
-      DriveFL.spin(DirecFL);
-      DriveBR.spin(DirecBR);
-      DriveFR.spin(DirecFR);
+      DriveFR.spin(DirecFR);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
     } else {
       DriveTrain.stop();
       TurnTrain.stop();
