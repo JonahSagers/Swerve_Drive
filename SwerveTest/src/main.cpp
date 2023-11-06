@@ -94,7 +94,7 @@ void toggleIntake(){
 void toggleFlywheel(){
   if(flywheelState == false){
     Flywheel.spin(forward);
-    Flywheel.setVelocity(65, percent);
+    Flywheel.setVelocity(100, percent);
     flywheelState = true;
   } else {
     Flywheel.stop();
@@ -192,15 +192,16 @@ void usercontrol(void) {
   // User control code here, inside the loop
   while(1) {
     //x and y had to be swapped because of how vex handles axes
-    float xInput = Controller1.Axis4.position();
-    float yInput = -Controller1.Axis3.position();
-    turnMagnitude = -Controller1.Axis1.position();
+    float xInput = -Controller1.Axis4.position();
+    float yInput = Controller1.Axis3.position();
+    turnMagnitude = Controller1.Axis1.position();
     //find the direction the stick is pointed in
     targetDirection = atan2(xInput,yInput)* 180.0 / 3.14159265 + 180;
     //find the magnitude of the left stick
     magnitude = sqrt((xInput * xInput + yInput * yInput));
-    xRotPoint = -sin(targetDirection * 3.14159265/180 + 1.570796325) * (turnMagnitude/20);
-    yRotPoint = -cos(targetDirection * 3.14159265/180 + 1.570796325) * (turnMagnitude/20);
+    xRotPoint = -sin(fabs(targetDirection) * 3.14159265/180 + 1.570796325) * (magnitude/20);
+    yRotPoint = cos(fabs(targetDirection) * 3.14159265/180 + 1.570796325) * (magnitude/20);
+    //coefficient goes up to 8
     avgDif = 0;
     //run the function to correct each drive
     //since each wheel is handled separately, it can correct for being knocked around and desynced
@@ -232,10 +233,10 @@ void usercontrol(void) {
       DriveBR.spin(DirecBR);
       DriveFR.spin(DirecFR);
     } else if(magnitude > 10 && fabs(turnMagnitude) > 10){
-      DriveBL.setVelocity(2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint + 1,2)))), percent);
-      DriveFL.setVelocity(2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint - 1,2)))), percent);
-      DriveBR.setVelocity(2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint + 1,2)))), percent);
-      DriveFR.setVelocity(2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint - 1,2)))), percent);
+      DriveBL.setVelocity(2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint + 1,2)))) * (turnMagnitude/fabs(turnMagnitude)), percent);
+      DriveFL.setVelocity(2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint - 1,2)))) * (turnMagnitude/fabs(turnMagnitude)), percent);
+      DriveBR.setVelocity(2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint + 1,2)))) * (turnMagnitude/fabs(turnMagnitude)), percent);
+      DriveFR.setVelocity(2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint - 1,2)))) * (turnMagnitude/fabs(turnMagnitude)), percent);
       DriveBL.spin(DirecBL);
       DriveFL.spin(DirecFL);
       DriveBR.spin(DirecBR);
