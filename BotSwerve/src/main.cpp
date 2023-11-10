@@ -33,7 +33,7 @@ rotation RotationBR = rotation(PORT11, false);
 //sad
 rotation RotationFR = rotation(PORT15, false);
 
-inertial Inertial = inertial(PORT21);
+inertial Inertial = inertial(PORT16);
 
 int rc_auto_loop_function_Controller1();
 
@@ -218,10 +218,7 @@ void usercontrol(void) {
     correctDrive(TurnBR, RotationBR, 2, 315, 135, 1, -1);
     correctDrive(TurnFR, RotationFR, 3, 45, 45, 1, 1);
     avgDif /= 4;
-    // printf("%f|", xRotPoint);
-    // printf("%f|", yRotPoint);
-    printf("%f\n", (2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint + 1,2))))));
-
+    
     //check if the drive should be in turn mode
     //each drive mode has a different drive function, to account for little differences
     //in the end, if they're still identical I'll merge them to cut down on spaghetti code

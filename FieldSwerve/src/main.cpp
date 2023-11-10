@@ -33,7 +33,7 @@ rotation RotationBR = rotation(PORT11, false);
 //sad
 rotation RotationFR = rotation(PORT15, false);
 
-inertial Inertial = inertial(PORT21);
+inertial Inertial = inertial(PORT16);
 
 int rc_auto_loop_function_Controller1();
 
