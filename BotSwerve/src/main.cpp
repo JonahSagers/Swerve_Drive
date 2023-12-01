@@ -34,6 +34,7 @@ rotation RotationBR = rotation(PORT11, false);
 rotation RotationFR = rotation(PORT15, false);
 
 inertial Inertial = inertial(PORT16);
+gps GPSSensor = gps(PORT17, 0.00, -240.00, mm, 180);
 
 int rc_auto_loop_function_Controller1();
 
@@ -63,7 +64,8 @@ void pre_auton(void) {
   RotationFR.setPosition(0, rev);
   Inertial.setRotation(0, rev);
   Inertial.calibrate();
-  while(Inertial.isCalibrating()){
+  GPSSensor.calibrate();
+  while(Inertial.isCalibrating() || GPSSensor.isCalibrating()){
     wait(100, msec);
   }
   Brain.Screen.print(color::cyan);
@@ -176,12 +178,108 @@ void correctDrive(motor currentMotor, rotation currentRot, int orient, int turnO
   }
 }
 
+void driveRespecting(){
+  DriveBL.spin(DirecBL);
+  DriveFL.spin(DirecFL);
+  DriveBR.spin(DirecBR);
+  DriveFR.spin(DirecFR);
+}
+
+void flipDrive(){
+  if(DirecBL == forward){
+    DirecBL = reverse;
+  } else {
+    DirecBL = forward;
+  }
+  if(DirecFL == forward){
+    DirecFL = reverse;
+  } else {
+    DirecFL = forward;
+  }
+  if(DirecBR == forward){
+    DirecBR = reverse;
+  } else {
+    DirecBR = forward;
+  }
+  if(DirecFR == forward){
+    DirecFR = reverse;
+  } else {
+    DirecFR = forward;
+  }
+}
+
+void moveTo(float xTarget, float yTarget){
+  while(sqrt(pow((GPSSensor.xPosition(mm) - xTarget),2) + pow((GPSSensor.yPosition(mm) - yTarget),2)) > 25){
+    targetDirection = clamp(atan2(xTarget - GPSSensor.xPosition(mm),  yTarget - GPSSensor.yPosition(mm)) * (180.0 / 3.14159265) + GPSSensor.heading());
+    magnitude = 100;
+    correctDrive(TurnBL, RotationBL, 0, 225, 225, -1, -1);
+    correctDrive(TurnFL, RotationFL, 1, 135, 315, -1, 1);
+    correctDrive(TurnBR, RotationBR, 2, 315, 135, 1, -1);
+    correctDrive(TurnFR, RotationFR, 3, 45, 45, 1, 1);
+    DriveTrain.setVelocity(25, percent);
+    driveRespecting();
+    Brain.Screen.print("X: %.2f", GPSSensor.xPosition(mm));
+    Brain.Screen.print("  Y: %.2f", GPSSensor.yPosition(mm));
+    Brain.Screen.newLine();
+    wait(50, msec);
+  }
+  DriveTrain.stop();
+}
+
+
+void crabDrive(float dir, float duration, float targetSpeed, bool reversed){
+  avgDif = 2;
+  magnitude = 100;
+  targetDirection = dir;
+  //increase the avgDif cuttoff if we run out of auton time
+  //for now, it makes things more accurate
+  while(avgDif > 1){
+    avgDif = 0;
+    correctDrive(TurnBL, RotationBL, 0, 225, 225, -1, -1);
+    correctDrive(TurnFL, RotationFL, 1, 135, 315, -1, 1);
+    correctDrive(TurnBR, RotationBR, 2, 315, 135, 1, -1);
+    correctDrive(TurnFR, RotationFR, 3, 45, 45, 1, 1);
+    avgDif /= 4;
+    //this function is stupidly fast, and it terminates properly so idk if it needs a delay
+    //it functions off of deltatime by nature, so it doesn't need to be at a fixed interval
+    //wait(1, msec);
+  }
+  TurnTrain.stop();
+  float startTime = Brain.Timer;
+  DriveTrain.setVelocity(targetSpeed, percent);
+  if(reversed){
+    flipDrive();
+  }
+  driveRespecting();
+  waitUntil(Brain.Timer > startTime + duration);
+  DriveTrain.stop();
+}
+
+void turnDrive(){
+
+}
+
 void autonomous(void) {
   Brain.Screen.clearScreen(color::cyan);
   PnuIntake = true;
-  // ..........................................................................
-  // Insert autonomous user code here.
-  // ..........................................................................
+  crabDrive(180, 1450, 40, true);
+  turnMagnitude = 100;
+  magnitude = 0;
+  crabDrive(0, 800, 25, true);
+  turnMagnitude = 0;
+  magnitude = 100;
+  crabDrive(90, 200, 40, true);
+  crabDrive(180, 200, 40, false);
+  crabDrive(180, 400, 100, true);
+  crabDrive(200, 1000, 40, false);
+  turnMagnitude = 100;
+  magnitude = 0;
+  crabDrive(0, 950, 25, true);
+  turnMagnitude = 0;
+  magnitude = 100;
+  crabDrive(0, 300, 25, true);
+
+  //moveTo(-500,500);
 }
 
 void usercontrol(void) {
@@ -204,7 +302,7 @@ void usercontrol(void) {
     float yInput = Controller1.Axis3.position();
     turnMagnitude = Controller1.Axis1.position();
     //find the direction the stick is pointed in
-    targetDirection = atan2(xInput,yInput)* 180.0 / 3.14159265 + 180;
+    targetDirection = atan2(xInput,yInput)* 180.0 / 3.14159265 + 180 + GPSSensor.heading();
     //find the magnitude of the left stick
     magnitude = sqrt((xInput * xInput + yInput * yInput));
     xRotPoint = -sin(fabs(targetDirection) * 3.14159265/180 + 1.570796325) * (magnitude/20) * sign(turnMagnitude);
@@ -218,6 +316,10 @@ void usercontrol(void) {
     correctDrive(TurnBR, RotationBR, 2, 315, 135, 1, -1);
     correctDrive(TurnFR, RotationFR, 3, 45, 45, 1, 1);
     avgDif /= 4;
+  
+    Brain.Screen.print("X: %.2f", GPSSensor.xPosition(mm));
+    Brain.Screen.print("  Y: %.2f", GPSSensor.yPosition(mm));
+    Brain.Screen.newLine();
     
     //check if the drive should be in turn mode
     //each drive mode has a different drive function, to account for little differences
@@ -226,19 +328,13 @@ void usercontrol(void) {
       //move motors
       float speed = magnitude;
       DriveTrain.setVelocity(speed, percent);
-      DriveBL.spin(DirecBL);
-      DriveFL.spin(DirecFL);
-      DriveBR.spin(DirecBR);
-      DriveFR.spin(DirecFR);
+      driveRespecting();
     } else if(fabs(turnMagnitude) > 10){
       DriveBL.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint + 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
       DriveFL.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint - 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
       DriveBR.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint + 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
       DriveFR.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint - 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
-      DriveBL.spin(DirecBL);
-      DriveFL.spin(DirecFL);
-      DriveBR.spin(DirecBR);
-      DriveFR.spin(DirecFR);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+      driveRespecting();
     } else {
       DriveTrain.stop();
       TurnTrain.stop();
@@ -258,6 +354,7 @@ void usercontrol(void) {
     //button state measures whether the button is pressed, so that the function doesn't trigger every frame
     wait(20, msec); // 1000 divided by wait duration = refresh rate of the code
                     // for example, 20 msec = 50hz refresh rate
+                    // if this value is too low, 
   }
 }
 
