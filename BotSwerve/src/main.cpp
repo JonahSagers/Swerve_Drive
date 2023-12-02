@@ -251,6 +251,13 @@ void crabDrive(float dir, float duration, float targetSpeed, bool reversed){
     flipDrive();
   }
   driveRespecting();
+  while(Brain.Timer < startTime + duration){
+    correctDrive(TurnBL, RotationBL, 0, 225, 225, -1, -1);
+    correctDrive(TurnFL, RotationFL, 1, 135, 315, -1, 1);
+    correctDrive(TurnBR, RotationBR, 2, 315, 135, 1, -1);
+    correctDrive(TurnFR, RotationFR, 3, 45, 45, 1, 1);
+    wait(1, msec);
+  }
   waitUntil(Brain.Timer > startTime + duration);
   DriveTrain.stop();
 }
@@ -262,22 +269,22 @@ void turnDrive(){
 void autonomous(void) {
   Brain.Screen.clearScreen(color::cyan);
   PnuIntake = true;
-  crabDrive(180, 1450, 40, true);
-  turnMagnitude = 100;
-  magnitude = 0;
-  crabDrive(0, 800, 25, true);
-  turnMagnitude = 0;
-  magnitude = 100;
-  crabDrive(90, 200, 40, true);
-  crabDrive(180, 200, 40, false);
-  crabDrive(180, 400, 100, true);
-  crabDrive(200, 1000, 40, false);
-  turnMagnitude = 100;
-  magnitude = 0;
-  crabDrive(0, 950, 25, true);
-  turnMagnitude = 0;
-  magnitude = 100;
-  crabDrive(0, 300, 25, true);
+  // crabDrive(180, 1450, 40, true);
+  // turnMagnitude = 100;
+  // magnitude = 0;
+  // crabDrive(0, 800, 25, true);
+  // turnMagnitude = 0;
+  // magnitude = 100;
+  // crabDrive(90, 200, 40, true);
+  // crabDrive(180, 200, 40, false);
+  // crabDrive(180, 400, 100, true);
+  // crabDrive(160, 1000, 40, false);
+  // turnMagnitude = 100;
+  // magnitude = 0;
+  // crabDrive(0, 950, 25, true);
+  // turnMagnitude = 0;
+  // magnitude = 100;
+  // crabDrive(0, 300, 25, true);
 
   //moveTo(-500,500);
 }
@@ -292,6 +299,7 @@ void usercontrol(void) {
   // Flywheel.spin(forward);
   // Flywheel.setVelocity(65, percent);
   // flywheelState = true;
+  toggleFlywheel();
   PnuIntake = false;
   wait(20, msec);
   PnuIntake = true;
