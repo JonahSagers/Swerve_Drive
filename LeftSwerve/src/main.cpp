@@ -52,6 +52,7 @@ directionType DirecFL;
 directionType DirecBR;
 directionType DirecFR;
 int intakeState;
+bool intakeLock;
 int flywheelState;
 int flywheelType;
 
@@ -359,11 +360,13 @@ void usercontrol(void) {
       Intake.setVelocity(100, percent);
       Intake.spin(forward);
       intakeState = true;
+      intakeLock = true;
     } else if(Controller1.ButtonR1.pressing()){
       Intake.setVelocity(100, percent);
       Intake.spin(reverse);
       intakeState = true;
-    } else {
+      intakeLock = false;
+    } else if(intakeLock == false){
       Intake.stop();
       intakeState = false;
     }

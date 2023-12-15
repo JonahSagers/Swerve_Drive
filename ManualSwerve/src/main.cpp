@@ -281,37 +281,27 @@ void turnDrive(){
 void autonomous(void) {
   Brain.Screen.clearScreen(color::cyan);
   PnuIntake = true;
-  crabDrive(180, 1450, 40, true);
-  turnMagnitude = 100;
-  magnitude = 0;
-  crabDrive(0, 700, 25, false);
-  turnMagnitude = 0;
-  magnitude = 100;
-  crabDrive(270, 200, 40, true);
-  crabDrive(180, 200, 40, false);
-  crabDrive(180, 400, 100, true);
-  crabDrive(200, 1000, 40, false);
-  turnMagnitude = 100;
-  magnitude = 0;
-  crabDrive(0, 300, 25, false);
-  turnMagnitude = 0;
-  magnitude = 100;
-  crabDrive(0, 300, 25, true);
-  turnMagnitude = 100;
-  magnitude = 0;
-  crabDrive(0, 325, 25, false);
+  // crabDrive(180, 1450, 40, true);
+  // turnMagnitude = 100;
+  // magnitude = 0;
+  // crabDrive(0, 750, 25, true);
+  // turnMagnitude = 0;
+  // magnitude = 100;
+  // crabDrive(90, 200, 40, true);
+  // crabDrive(180, 200, 40, false);
+  // crabDrive(180, 450, 100, true);
+  // crabDrive(160, 1000, 40, false);
+  // turnMagnitude = 100;
+  // magnitude = 0;
+  // crabDrive(0, 900, 25, true);
+  // turnMagnitude = 0;
+  // magnitude = 100;
+  // crabDrive(0, 300, 25, true);
 }
 
 void usercontrol(void) {
   Brain.Screen.clearScreen(color::green);
-  //Controller1.ButtonR2.pressed(toggleIntake);
-  //Adrian doesn't want an intake toggle
-  //Flywheel should start in the on state
-  //But not during development.  Uncomment this for comp
-  // Flywheel.spin(forward);
-  // Flywheel.setVelocity(65, percent);
-  // flywheelState = true;
-  toggleFlywheel(true);
+  // toggleFlywheel(true);
   PnuIntake = false;
   wait(20, msec);
   PnuIntake = true;
