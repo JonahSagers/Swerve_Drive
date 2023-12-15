@@ -53,6 +53,7 @@ directionType DirecBR;
 directionType DirecFR;
 int intakeState;
 int flywheelState;
+int flywheelType;
 
 void pre_auton(void) {
   // Initializing Robot Configuration. DO NOT REMOVE!
@@ -104,10 +105,20 @@ void toggleIntake(){
   }
 }
 
-void toggleFlywheel(){
-  if(flywheelState == false){
+void toggleFlywheel(bool flywheelTarget){
+  if(flywheelState == false || flywheelType != flywheelTarget){
+    if(flywheelTarget){
+      Flywheel.setVelocity(100, percent);
+      
+    } else {
+      Flywheel.setVelocity(-100, percent);
+    }
+    flywheelType = flywheelTarget;
+    if(flywheelState == true){
+      Flywheel.stop(coast);
+      wait(250, msec);
+    }
     Flywheel.spin(forward);
-    Flywheel.setVelocity(100, percent);
     flywheelState = true;
   } else {
     Flywheel.stop();
@@ -269,37 +280,37 @@ void turnDrive(){
 void autonomous(void) {
   Brain.Screen.clearScreen(color::cyan);
   PnuIntake = true;
-  // crabDrive(180, 1450, 40, true);
-  // turnMagnitude = 100;
-  // magnitude = 0;
-  // crabDrive(0, 800, 25, true);
-  // turnMagnitude = 0;
-  // magnitude = 100;
-  // crabDrive(90, 200, 40, true);
-  // crabDrive(180, 200, 40, false);
-  // crabDrive(180, 400, 100, true);
-  // crabDrive(160, 1000, 40, false);
-  // turnMagnitude = 100;
-  // magnitude = 0;
-  // crabDrive(0, 950, 25, true);
-  // turnMagnitude = 0;
-  // magnitude = 100;
-  // crabDrive(0, 300, 25, true);
-
-  //moveTo(-500,500);
+  crabDrive(180, 1450, 40, true);
+  turnMagnitude = 100;
+  magnitude = 0;
+  crabDrive(0, 700, 25, false);
+  turnMagnitude = 0;
+  magnitude = 100;
+  crabDrive(270, 200, 40, true);
+  crabDrive(180, 200, 40, false);
+  crabDrive(180, 400, 100, true);
+  crabDrive(200, 1000, 40, false);
+  turnMagnitude = 100;
+  magnitude = 0;
+  crabDrive(0, 300, 25, false);
+  turnMagnitude = 0;
+  magnitude = 100;
+  crabDrive(0, 300, 25, true);
+  turnMagnitude = 100;
+  magnitude = 0;
+  crabDrive(0, 325, 25, false);
 }
 
 void usercontrol(void) {
   Brain.Screen.clearScreen(color::green);
   //Controller1.ButtonR2.pressed(toggleIntake);
   //Adrian doesn't want an intake toggle
-  Controller1.ButtonUp.pressed(toggleFlywheel);
   //Flywheel should start in the on state
   //But not during development.  Uncomment this for comp
   // Flywheel.spin(forward);
   // Flywheel.setVelocity(65, percent);
   // flywheelState = true;
-  toggleFlywheel();
+  toggleFlywheel(true);
   PnuIntake = false;
   wait(20, msec);
   PnuIntake = true;
@@ -358,6 +369,11 @@ void usercontrol(void) {
     } else {
       Intake.stop();
       intakeState = false;
+    }
+    if(Controller1.ButtonUp.pressing()){
+      toggleFlywheel(true);
+    } else if(Controller1.ButtonDown.pressing()){
+      toggleFlywheel(false);
     }
     //button state measures whether the button is pressed, so that the function doesn't trigger every frame
     wait(20, msec); // 1000 divided by wait duration = refresh rate of the code
