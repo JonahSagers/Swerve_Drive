@@ -7,34 +7,33 @@ controller Controller1 = controller(primary);
 brain  Brain;
 
 //motors are notated by position.  For example, BL = back left
-motor DriveBL = motor(PORT6, ratio6_1, true);
-motor DriveFL = motor(PORT5, ratio6_1, true);
-motor DriveBR = motor(PORT7, ratio6_1, true);
-motor DriveFR = motor(PORT8, ratio6_1, true);
+motor DriveBL = motor(PORT10, ratio6_1, true);
+motor DriveFL = motor(PORT20, ratio6_1, true);
+motor DriveBR = motor(PORT1, ratio6_1, true);
+motor DriveFR = motor(PORT14, ratio6_1, true);
 
-motor TurnBL = motor(PORT1, ratio6_1, true);
-motor TurnFL = motor(PORT2, ratio6_1, true);
+motor TurnBL = motor(PORT9, ratio6_1, true);
+motor TurnFL = motor(PORT19, ratio6_1, true);
 //port 3 is broken
 //sad
-motor TurnBR = motor(PORT14, ratio6_1, true);
-motor TurnFR = motor(PORT4, ratio6_1, true);
+motor TurnBR = motor(PORT2, ratio6_1, true);
+motor TurnFR = motor(PORT11, ratio6_1, true);
 //unassigned motors are placeholdered at 20
-motor Intake = motor(PORT16, ratio6_1, false);
-motor Flywheel = motor(PORT19, ratio6_1, true);
+motor Intake = motor(PORT21, ratio6_1, false);
+motor Flywheel = motor(PORT21, ratio6_1, true);
+motor Lift = motor(PORT21, ratio6_1, true);
 digital_out PnuIntake = digital_out(Brain.ThreeWirePort.A);
 
 motor_group DriveTrain = motor_group(DriveBL, DriveFL, DriveBR, DriveFR);
 motor_group TurnTrain = motor_group(TurnBL, TurnFL, TurnBR, TurnFR);
 
-rotation RotationBL = rotation(PORT9, false);
-rotation RotationFL = rotation(PORT10, false);
-rotation RotationBR = rotation(PORT11, false);
-//port 12 is broken
-//sad
+rotation RotationBL = rotation(PORT8, false);
+rotation RotationFL = rotation(PORT18, false);
+rotation RotationBR = rotation(PORT4, false);
 rotation RotationFR = rotation(PORT15, false);
 
-inertial Inertial = inertial(PORT16);
-gps GPSSensor = gps(PORT17, 0.00, -240.00, mm, 180);
+inertial Inertial = inertial(PORT21);
+gps GPSSensor = gps(PORT21, 0.00, -240.00, mm, 180);
 
 int rc_auto_loop_function_Controller1();
 
@@ -53,6 +52,7 @@ directionType DirecBR;
 directionType DirecFR;
 int intakeState;
 bool intakeLock;
+float liftState;
 int flywheelState;
 int flywheelType;
 
@@ -60,10 +60,11 @@ void pre_auton(void) {
   // Initializing Robot Configuration. DO NOT REMOVE!
   vexcodeInit();
   Brain.Screen.print(color::red);
-  RotationBL.setPosition(0, rev);
-  RotationFL.setPosition(0, rev);
-  RotationBR.setPosition(0, rev);
-  RotationFR.setPosition(0, rev);
+  // RotationBL.setPosition(0, rev);
+  // RotationFL.setPosition(0, rev);
+  // RotationBR.setPosition(0, rev);
+  // RotationFR.setPosition(0, rev);
+  Lift.setRotation(0, deg);
   Inertial.setRotation(0, rev);
   Inertial.calibrate();
   GPSSensor.calibrate();
@@ -106,6 +107,22 @@ void toggleIntake(){
   }
 }
 
+void toggleLift(){
+  if(liftState == false){
+    Lift.setVelocity(10, percent);
+    Lift.setStopping(hold);
+    Lift.spinToPosition(70,degrees);
+    Lift.setTimeout(1,sec);
+    liftState = true;
+  } else {
+    Lift.setVelocity(10, percent);
+    Lift.setStopping(hold);
+    Lift.spinToPosition(0,degrees);
+    Lift.setTimeout(1,sec);
+    liftState = false;
+  }
+}
+
 void toggleFlywheel(bool flywheelTarget){
   if(flywheelState == false || flywheelType != flywheelTarget){
     if(flywheelTarget){
@@ -130,7 +147,7 @@ void toggleFlywheel(bool flywheelTarget){
 void correctDrive(motor currentMotor, rotation currentRot, int orient, int turnOffset, int turnOffset2, int x, int y){
   //get wheel rotation
   PnuIntake = true;
-  float currentDirection = fmod((currentRot.position(rev)/7 * 3) * 360,360);
+  float currentDirection = currentRot.position(deg);
   float difDirection;
   currentDirection = clamp(currentDirection);
   //check if the robot should be in turn mode
@@ -377,6 +394,9 @@ void usercontrol(void) {
       toggleFlywheel(true);
     } else if(Controller1.ButtonDown.pressing()){
       toggleFlywheel(false);
+    }
+    if(Controller1.ButtonRight.pressing()){
+      toggleLift();
     }
     //button state measures whether the button is pressed, so that the function doesn't trigger every frame
     wait(20, msec); // 1000 divided by wait duration = refresh rate of the code
