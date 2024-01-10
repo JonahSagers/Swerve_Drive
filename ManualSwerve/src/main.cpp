@@ -7,29 +7,27 @@ controller Controller1 = controller(primary);
 brain  Brain;
 
 //motors are notated by position.  For example, BL = back left
-motor DriveBL = motor(PORT10, ratio6_1, true);
-motor DriveFL = motor(PORT20, ratio6_1, true);
-motor DriveBR = motor(PORT1, ratio6_1, true);
-motor DriveFR = motor(PORT14, ratio6_1, true);
+motor DriveBL = motor(PORT17, ratio6_1, true);
+motor DriveFL = motor(PORT14, ratio6_1, true);
+motor DriveBR = motor(PORT2, ratio6_1, true);
+motor DriveFR = motor(PORT5, ratio6_1, true);
 
-motor TurnBL = motor(PORT9, ratio6_1, true);
-motor TurnFL = motor(PORT19, ratio6_1, true);
-//port 3 is broken
-//sad
-motor TurnBR = motor(PORT2, ratio6_1, true);
-motor TurnFR = motor(PORT11, ratio6_1, true);
-//unassigned motors are placeholdered at 20
-motor Intake = motor(PORT21, ratio6_1, false);
+motor TurnBL = motor(PORT11, ratio6_1, true);
+motor TurnFL = motor(PORT15, ratio6_1, true);
+motor TurnBR = motor(PORT1, ratio6_1, true);
+motor TurnFR = motor(PORT4, ratio6_1, true);
+//unassigned items are placeheld at 21
+motor Intake = motor(PORT19, ratio6_1, false);
 motor Flywheel = motor(PORT21, ratio6_1, true);
-motor Lift = motor(PORT18, ratio6_1, false);
+motor Lift = motor(PORT21, ratio6_1, false);
 digital_out PnuIntake = digital_out(Brain.ThreeWirePort.A);
 
 motor_group DriveTrain = motor_group(DriveBL, DriveFL, DriveBR, DriveFR);
 motor_group TurnTrain = motor_group(TurnBL, TurnFL, TurnBR, TurnFR);
 
-rotation RotationBL = rotation(PORT8, false);
-rotation RotationFL = rotation(PORT17, true);
-rotation RotationBR = rotation(PORT4, false);
+rotation RotationBL = rotation(PORT18, true);
+rotation RotationFL = rotation(PORT16, false);
+rotation RotationBR = rotation(PORT7, false);
 rotation RotationFR = rotation(PORT6, false);
 
 inertial Inertial = inertial(PORT21);
