@@ -21,16 +21,16 @@ motor TurnFR = motor(PORT11, ratio6_1, true);
 //unassigned motors are placeholdered at 20
 motor Intake = motor(PORT21, ratio6_1, false);
 motor Flywheel = motor(PORT21, ratio6_1, true);
-motor Lift = motor(PORT21, ratio6_1, true);
+motor Lift = motor(PORT18, ratio6_1, false);
 digital_out PnuIntake = digital_out(Brain.ThreeWirePort.A);
 
 motor_group DriveTrain = motor_group(DriveBL, DriveFL, DriveBR, DriveFR);
 motor_group TurnTrain = motor_group(TurnBL, TurnFL, TurnBR, TurnFR);
 
 rotation RotationBL = rotation(PORT8, false);
-rotation RotationFL = rotation(PORT18, false);
+rotation RotationFL = rotation(PORT17, true);
 rotation RotationBR = rotation(PORT4, false);
-rotation RotationFR = rotation(PORT15, false);
+rotation RotationFR = rotation(PORT6, false);
 
 inertial Inertial = inertial(PORT21);
 gps GPSSensor = gps(PORT21, 0.00, -240.00, mm, 180);
@@ -109,16 +109,16 @@ void toggleIntake(){
 
 void toggleLift(){
   if(liftState == false){
-    Lift.setVelocity(10, percent);
+    Lift.setVelocity(50, percent);
     Lift.setStopping(hold);
-    Lift.spinToPosition(70,degrees);
-    Lift.setTimeout(1,sec);
+    Lift.spinToPosition(12, rev);
+    Lift.setTimeout(10,sec);
     liftState = true;
   } else {
-    Lift.setVelocity(10, percent);
+    Lift.setVelocity(50, percent);
     Lift.setStopping(hold);
-    Lift.spinToPosition(0,degrees);
-    Lift.setTimeout(1,sec);
+    Lift.spinToPosition(0, rev);
+    Lift.setTimeout(10,sec);
     liftState = false;
   }
 }
