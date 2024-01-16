@@ -21,6 +21,7 @@ motor Intake = motor(PORT19, ratio6_1, false);
 motor Flywheel = motor(PORT21, ratio6_1, true);
 motor Lift = motor(PORT21, ratio6_1, false);
 digital_out PnuIntake = digital_out(Brain.ThreeWirePort.A);
+digital_out Wings = digital_out(Brain.ThreeWirePort.B);
 
 motor_group DriveTrain = motor_group(DriveBL, DriveFL, DriveBR, DriveFR);
 motor_group TurnTrain = motor_group(TurnBL, TurnFL, TurnBR, TurnFR);
@@ -297,10 +298,10 @@ void autonomous(void) {
   Brain.Screen.clearScreen(color::cyan);
   PnuIntake = true;
   flywheelState = false;
-  crabDrive(180, 1450, 40, true);
+  crabDrive(180, 1250, 40, true);
   turnMagnitude = 100;
   magnitude = 0;
-  crabDrive(0, 750, 25, true);
+  crabDrive(0, 500, 15, true);
   turnMagnitude = 0;
   magnitude = 100;
   crabDrive(90, 200, 40, true);
@@ -334,6 +335,29 @@ void usercontrol(void) {
     float xInput = -Controller1.Axis4.position();
     float yInput = Controller1.Axis3.position();
     turnMagnitude = Controller1.Axis1.position();
+    float aimAssist = 10;
+    if(turnMagnitude > 100 - aimAssist){
+      turnMagnitude = 100;
+    }
+    if(turnMagnitude < -100 + aimAssist){
+      turnMagnitude = -100;
+    }
+    if(xInput > 100 - aimAssist && fabs(yInput) < aimAssist){
+      xInput = 100;
+      yInput = 0;
+    }
+    if(xInput < -100 + aimAssist && fabs(yInput) < aimAssist){
+      xInput = -100;
+      yInput = 0;
+    }
+    if(yInput > 100 - aimAssist && fabs(xInput) < aimAssist){
+      xInput = 0;
+      yInput = 100;
+    }
+    if(yInput < -100 + aimAssist && fabs(xInput) < aimAssist){
+      xInput = 0;
+      yInput = -100;
+    }
     //find the direction the stick is pointed in
     targetDirection = atan2(xInput,yInput)* 180.0 / 3.14159265 + 180 + GPSSensor.heading();
     //find the magnitude of the left stick
@@ -392,17 +416,9 @@ void usercontrol(void) {
       toggleFlywheel(false);
     }
     if(Controller1.ButtonL1.pressing()){
-      Lift.setTimeout(10,sec);
-      liftState = true;
-      Lift.setVelocity(75, percent);
-      Lift.setStopping(hold);
-      Lift.spinToPosition(12, rev, false);
+      Wings = true;
     } else if(Controller1.ButtonL2.pressing()){
-      Lift.setTimeout(10,sec);
-      liftState = true;
-      Lift.setVelocity(75, percent);
-      Lift.setStopping(hold);
-      Lift.spinToPosition(0, rev, false);
+      Wings = false;
     }
     //button state measures whether the button is pressed, so that the function doesn't trigger every frame
     wait(20, msec); // 1000 divided by wait duration = refresh rate of the code
