@@ -59,10 +59,10 @@ void pre_auton(void) {
   // Initializing Robot Configuration. DO NOT REMOVE!
   vexcodeInit();
   Brain.Screen.print(color::red);
-  // RotationBL.setPosition(0, rev);
-  // RotationFL.setPosition(0, rev);
-  // RotationBR.setPosition(0, rev);
-  // RotationFR.setPosition(0, rev);
+  // RotationBL.setPosition(0, deg);
+  // RotationFL.setPosition(0, deg);
+  // RotationBR.setPosition(0, deg);
+  // RotationFR.setPosition(0, deg);
   Lift.setRotation(0, deg);
   Inertial.setRotation(0, rev);
   Inertial.calibrate();
@@ -236,7 +236,7 @@ void flipDrive(){
   }
 }
 
-void moveTo(float xTarget, float yTarget){
+void GPSTo(float xTarget, float yTarget){
   while(sqrt(pow((GPSSensor.xPosition(mm) - xTarget),2) + pow((GPSSensor.yPosition(mm) - yTarget),2)) > 25){
     targetDirection = clamp(atan2(xTarget - GPSSensor.xPosition(mm),  yTarget - GPSSensor.yPosition(mm)) * (180.0 / 3.14159265) + GPSSensor.heading());
     magnitude = 100;
@@ -255,9 +255,10 @@ void moveTo(float xTarget, float yTarget){
 }
 
 
-void crabDrive(float dir, float duration, float targetSpeed, bool reversed){
+void autonDrive(float dir, float targetMagnitude, float targetTurnMagnitude, float duration, float targetSpeed, bool reversed){
+  magnitude = targetMagnitude;
+  turnMagnitude = targetTurnMagnitude;
   avgDif = 2;
-  magnitude = 100;
   targetDirection = dir;
   //increase the avgDif cuttoff if we run out of auton time
   //for now, it makes things more accurate
@@ -297,25 +298,15 @@ void turnDrive(){
 void autonomous(void) {
   Brain.Screen.clearScreen(color::cyan);
   PnuIntake = true;
-  crabDrive(180, 1450, 40, true);
-  turnMagnitude = 100;
-  magnitude = 0;
-  crabDrive(0, 700, 25, false);
-  turnMagnitude = 0;
-  magnitude = 100;
-  crabDrive(270, 200, 40, true);
-  crabDrive(180, 200, 40, false);
-  crabDrive(180, 400, 100, true);
-  crabDrive(200, 1000, 40, false);
-  turnMagnitude = 100;
-  magnitude = 0;
-  crabDrive(0, 300, 25, false);
-  turnMagnitude = 0;
-  magnitude = 100;
-  crabDrive(0, 300, 25, true);
-  turnMagnitude = 100;
-  magnitude = 0;
-  crabDrive(0, 325, 25, false);
+  autonDrive(180, 100, 0, 1450, 40, true);
+  autonDrive(0, 0, 100, 700, 25, false);
+  autonDrive(270, 100, 0, 200, 40, true);
+  autonDrive(180, 100, 0, 200, 40, false);
+  autonDrive(180, 100, 0, 400, 100, true);
+  autonDrive(200, 100, 0, 1000, 40, false);
+  autonDrive(0, 0, 100, 300, 25, false);
+  autonDrive(0, 100, 0, 300, 25, true);
+  autonDrive(0, 0, 100, 325, 25, false);
 }
 
 void usercontrol(void) {

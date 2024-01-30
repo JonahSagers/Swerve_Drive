@@ -7,33 +7,32 @@ controller Controller1 = controller(primary);
 brain  Brain;
 
 //motors are notated by position.  For example, BL = back left
-motor DriveBL = motor(PORT6, ratio6_1, true);
-motor DriveFL = motor(PORT5, ratio6_1, true);
-motor DriveBR = motor(PORT7, ratio6_1, true);
-motor DriveFR = motor(PORT8, ratio6_1, true);
+motor DriveBL = motor(PORT17, ratio6_1, true);
+motor DriveFL = motor(PORT14, ratio6_1, true);
+motor DriveBR = motor(PORT2, ratio6_1, true);
+motor DriveFR = motor(PORT5, ratio6_1, true);
 
-motor TurnBL = motor(PORT1, ratio6_1, true);
-motor TurnFL = motor(PORT2, ratio6_1, true);
-//port 3 is broken
-//sad
-motor TurnBR = motor(PORT14, ratio6_1, true);
+motor TurnBL = motor(PORT11, ratio6_1, true);
+motor TurnFL = motor(PORT15, ratio6_1, true);
+motor TurnBR = motor(PORT1, ratio6_1, true);
 motor TurnFR = motor(PORT4, ratio6_1, true);
-//unassigned motors are placeholdered at 20
-motor Intake = motor(PORT16, ratio6_1, false);
-motor Flywheel = motor(PORT19, ratio6_1, true);
+//unassigned items are placeheld at 21
+motor Intake = motor(PORT19, ratio6_1, false);
+motor Flywheel = motor(PORT21, ratio6_1, true);
+motor Lift = motor(PORT21, ratio6_1, false);
 digital_out PnuIntake = digital_out(Brain.ThreeWirePort.A);
+digital_out Wings = digital_out(Brain.ThreeWirePort.B);
 
 motor_group DriveTrain = motor_group(DriveBL, DriveFL, DriveBR, DriveFR);
 motor_group TurnTrain = motor_group(TurnBL, TurnFL, TurnBR, TurnFR);
 
-rotation RotationBL = rotation(PORT9, false);
-rotation RotationFL = rotation(PORT10, false);
-rotation RotationBR = rotation(PORT11, false);
-//port 12 is broken
-//sad
-rotation RotationFR = rotation(PORT15, false);
+rotation RotationBL = rotation(PORT18, true);
+rotation RotationFL = rotation(PORT16, false);
+rotation RotationBR = rotation(PORT7, false);
+rotation RotationFR = rotation(PORT6, false);
 
-inertial Inertial = inertial(PORT16);
+inertial Inertial = inertial(PORT10);
+gps GPSSensor = gps(PORT21, 0.00, -240.00, mm, 180);
 
 int rc_auto_loop_function_Controller1();
 
@@ -51,21 +50,26 @@ directionType DirecFL;
 directionType DirecBR;
 directionType DirecFR;
 int intakeState;
+bool intakeLock;
+float liftState;
 int flywheelState;
+int flywheelType;
 
 void pre_auton(void) {
   // Initializing Robot Configuration. DO NOT REMOVE!
   vexcodeInit();
   Brain.Screen.print(color::red);
-  RotationBL.setPosition(0, rev);
-  RotationFL.setPosition(0, rev);
-  RotationBR.setPosition(0, rev);
-  RotationFR.setPosition(0, rev);
+  // RotationBL.setPosition(0, deg);
+  // RotationFL.setPosition(0, deg);
+  // RotationBR.setPosition(0, deg);
+  // RotationFR.setPosition(0, deg);
+  Lift.setRotation(0, deg);
   Inertial.setRotation(0, rev);
-  Inertial.calibrate();
-  while(Inertial.isCalibrating()){
-    wait(100, msec);
-  }
+  // Inertial.calibrate();
+  // GPSSensor.calibrate();
+  // while(Inertial.isCalibrating() || GPSSensor.isCalibrating()){
+  //   wait(100, msec);
+  // }
   Brain.Screen.print(color::cyan);
   // All activities that occur before the competition starts
   // Example: clearing encoders, setting servo positions, ...
@@ -102,10 +106,36 @@ void toggleIntake(){
   }
 }
 
-void toggleFlywheel(){
-  if(flywheelState == false){
+void toggleLift(){
+  if(liftState == false){
+    Lift.setVelocity(50, percent);
+    Lift.setStopping(hold);
+    Lift.spinToPosition(12, rev);
+    Lift.setTimeout(10,sec);
+    liftState = true;
+  } else {
+    Lift.setVelocity(50, percent);
+    Lift.setStopping(hold);
+    Lift.spinToPosition(0, rev);
+    Lift.setTimeout(10,sec);
+    liftState = false;
+  }
+}
+
+void toggleFlywheel(bool flywheelTarget){
+  if(flywheelState == false || flywheelType != flywheelTarget){
+    if(flywheelTarget){
+      Flywheel.setVelocity(100, percent);
+      
+    } else {
+      Flywheel.setVelocity(-100, percent);
+    }
+    flywheelType = flywheelTarget;
+    if(flywheelState == true){
+      Flywheel.stop(coast);
+      wait(250, msec);
+    }
     Flywheel.spin(forward);
-    Flywheel.setVelocity(100, percent);
     flywheelState = true;
   } else {
     Flywheel.stop();
@@ -116,7 +146,7 @@ void toggleFlywheel(){
 void correctDrive(motor currentMotor, rotation currentRot, int orient, int turnOffset, int turnOffset2, int x, int y){
   //get wheel rotation
   PnuIntake = true;
-  float currentDirection = fmod((currentRot.position(rev)/7 * 3) * 360,360);
+  float currentDirection = currentRot.position(deg);
   float difDirection;
   currentDirection = clamp(currentDirection);
   //check if the robot should be in turn mode
@@ -172,28 +202,123 @@ void correctDrive(motor currentMotor, rotation currentRot, int orient, int turnO
       currentMotor.spin(reverse);
     }
   } else {
-    currentMotor.stop();
+    currentMotor.stop(hold);
   }
+}
+
+void driveRespecting(){
+  DriveBL.spin(DirecBL);
+  DriveFL.spin(DirecFL);
+  DriveBR.spin(DirecBR);
+  DriveFR.spin(DirecFR);
+}
+
+void flipDrive(){
+  if(DirecBL == forward){
+    DirecBL = reverse;
+  } else {
+    DirecBL = forward;
+  }
+  if(DirecFL == forward){
+    DirecFL = reverse;
+  } else {
+    DirecFL = forward;
+  }
+  if(DirecBR == forward){
+    DirecBR = reverse;
+  } else {
+    DirecBR = forward;
+  }
+  if(DirecFR == forward){
+    DirecFR = reverse;
+  } else {
+    DirecFR = forward;
+  }
+}
+
+void GPSTo(float xTarget, float yTarget){
+  while(sqrt(pow((GPSSensor.xPosition(mm) - xTarget),2) + pow((GPSSensor.yPosition(mm) - yTarget),2)) > 25){
+    targetDirection = clamp(atan2(xTarget - GPSSensor.xPosition(mm),  yTarget - GPSSensor.yPosition(mm)) * (180.0 / 3.14159265) + GPSSensor.heading());
+    magnitude = 100;
+    correctDrive(TurnBL, RotationBL, 0, 225, 225, -1, -1);
+    correctDrive(TurnFL, RotationFL, 1, 135, 315, -1, 1);
+    correctDrive(TurnBR, RotationBR, 2, 315, 135, 1, -1);
+    correctDrive(TurnFR, RotationFR, 3, 45, 45, 1, 1);
+    DriveTrain.setVelocity(25, percent);
+    driveRespecting();
+    Brain.Screen.print("X: %.2f", GPSSensor.xPosition(mm));
+    Brain.Screen.print("  Y: %.2f", GPSSensor.yPosition(mm));
+    Brain.Screen.newLine();
+    wait(50, msec);
+  }
+  DriveTrain.stop();
+}
+
+
+void autonDrive(float dir, float targetMagnitude, float targetTurnMagnitude, float duration, float targetSpeed, bool reversed){
+  magnitude = targetMagnitude;
+  turnMagnitude = targetTurnMagnitude;
+  avgDif = 2;
+  targetDirection = dir;
+  //increase the avgDif cuttoff if we run out of auton time
+  //for now, it makes things more accurate
+  while(avgDif > 1){
+    avgDif = 0;
+    correctDrive(TurnBL, RotationBL, 0, 225, 225, -1, -1);
+    correctDrive(TurnFL, RotationFL, 1, 135, 315, -1, 1);
+    correctDrive(TurnBR, RotationBR, 2, 315, 135, 1, -1);
+    correctDrive(TurnFR, RotationFR, 3, 45, 45, 1, 1);
+    avgDif /= 4;
+    //this function is stupidly fast, and it terminates properly so idk if it needs a delay
+    //it functions off of deltatime by nature, so it doesn't need to be at a fixed interval
+    //wait(1, msec);
+  }
+  TurnTrain.stop();
+  float startTime = Brain.Timer;
+  DriveTrain.setVelocity(targetSpeed, percent);
+  if(reversed){
+    flipDrive();
+  }
+  driveRespecting();
+  while(Brain.Timer < startTime + duration){
+    correctDrive(TurnBL, RotationBL, 0, 225, 225, -1, -1);
+    correctDrive(TurnFL, RotationFL, 1, 135, 315, -1, 1);
+    correctDrive(TurnBR, RotationBR, 2, 315, 135, 1, -1);
+    correctDrive(TurnFR, RotationFR, 3, 45, 45, 1, 1);
+    wait(1, msec);
+  }
+  waitUntil(Brain.Timer > startTime + duration);
+  DriveTrain.stop();
+}
+
+void turnDrive(){
+
 }
 
 void autonomous(void) {
   Brain.Screen.clearScreen(color::cyan);
   PnuIntake = true;
-  // ..........................................................................
-  // Insert autonomous user code here.
-  // ..........................................................................
+  autonDrive(180, 100, 0, 1450, 40, true);
+  autonDrive(0, 0, 100, 700, 25, false);
+  autonDrive(270, 100, 0, 200, 40, true);
+  autonDrive(180, 100, 0, 200, 40, false);
+  autonDrive(180, 100, 0, 400, 100, true);
+  autonDrive(200, 100, 0, 1000, 40, false);
+  autonDrive(0, 0, 100, 300, 25, false);
+  autonDrive(0, 100, 0, 300, 25, true);
+  autonDrive(0, 0, 100, 325, 25, false);
 }
 
 void usercontrol(void) {
   Brain.Screen.clearScreen(color::green);
   //Controller1.ButtonR2.pressed(toggleIntake);
   //Adrian doesn't want an intake toggle
-  Controller1.ButtonUp.pressed(toggleFlywheel);
   //Flywheel should start in the on state
   //But not during development.  Uncomment this for comp
   // Flywheel.spin(forward);
   // Flywheel.setVelocity(65, percent);
   // flywheelState = true;
+  toggleFlywheel(true);
   PnuIntake = false;
   wait(20, msec);
   PnuIntake = true;
@@ -203,8 +328,31 @@ void usercontrol(void) {
     float xInput = -Controller1.Axis4.position();
     float yInput = Controller1.Axis3.position();
     turnMagnitude = Controller1.Axis1.position();
+    float aimAssist = 10;
+    if(turnMagnitude > 100 - aimAssist){
+      turnMagnitude = 100;
+    }
+    if(turnMagnitude < -100 + aimAssist){
+      turnMagnitude = -100;
+    }
+    if(xInput > 100 - aimAssist && fabs(yInput) < aimAssist){
+      xInput = 100;
+      yInput = 0;
+    }
+    if(xInput < -100 + aimAssist && fabs(yInput) < aimAssist){
+      xInput = -100;
+      yInput = 0;
+    }
+    if(yInput > 100 - aimAssist && fabs(xInput) < aimAssist){
+      xInput = 0;
+      yInput = 100;
+    }
+    if(yInput < -100 + aimAssist && fabs(xInput) < aimAssist){
+      xInput = 0;
+      yInput = -100;
+    }
     //find the direction the stick is pointed in
-    targetDirection = fmod(atan2(xInput,yInput)* 180.0 / 3.14159265 + 180 + Inertial.rotation(), 360);
+    targetDirection = atan2(xInput,yInput)* 180.0 / 3.14159265 + 180 + Inertial.heading();
     //find the magnitude of the left stick
     magnitude = sqrt((xInput * xInput + yInput * yInput));
     xRotPoint = -sin(fabs(targetDirection) * 3.14159265/180 + 1.570796325) * (magnitude/20) * sign(turnMagnitude);
@@ -218,46 +366,62 @@ void usercontrol(void) {
     correctDrive(TurnBR, RotationBR, 2, 315, 135, 1, -1);
     correctDrive(TurnFR, RotationFR, 3, 45, 45, 1, 1);
     avgDif /= 4;
-
+  
+    // Brain.Screen.print("X: %.2f", GPSSensor.xPosition(mm));
+    // Brain.Screen.print("  Y: %.2f", GPSSensor.yPosition(mm));
+    // Brain.Screen.newLine();
+    
     //check if the drive should be in turn mode
     //each drive mode has a different drive function, to account for little differences
     //in the end, if they're still identical I'll merge them to cut down on spaghetti code
-    if(magnitude > 10 && fabs(turnMagnitude) < 10){
-      //move motors
-      float speed = magnitude;
-      DriveTrain.setVelocity(speed, percent);
-      DriveBL.spin(DirecBL);
-      DriveFL.spin(DirecFL);
-      DriveBR.spin(DirecBR);
-      DriveFR.spin(DirecFR);
-    } else if(fabs(turnMagnitude) > 10){
-      DriveBL.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint + 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
-      DriveFL.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint - 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
-      DriveBR.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint + 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
-      DriveFR.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint - 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
-      DriveBL.spin(DirecBL);
-      DriveFL.spin(DirecFL);
-      DriveBR.spin(DirecBR);
-      DriveFR.spin(DirecFR);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+    if(false){
+      DriveTrain.setVelocity(0, percent);
     } else {
-      DriveTrain.stop();
-      TurnTrain.stop();
+      if(magnitude > 10 && fabs(turnMagnitude) < 10){
+        //move motors
+        float speed = magnitude;
+        DriveTrain.setVelocity(speed, percent);
+        driveRespecting();
+      } else if(fabs(turnMagnitude) > 10){
+        DriveBL.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint + 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
+        DriveFL.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint - 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
+        DriveBR.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint + 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
+        DriveFR.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint - 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
+        driveRespecting();
+      } else {
+        DriveTrain.stop();
+        TurnTrain.stop();
+      }
     }
+
     if(Controller1.ButtonR2.pressing()){
       Intake.setVelocity(100, percent);
       Intake.spin(forward);
       intakeState = true;
+      intakeLock = true;
     } else if(Controller1.ButtonR1.pressing()){
       Intake.setVelocity(100, percent);
       Intake.spin(reverse);
       intakeState = true;
-    } else {
+      intakeLock = false;
+    } else if(intakeLock == false){
       Intake.stop();
       intakeState = false;
     }
+    if(Controller1.ButtonUp.pressing()){
+      toggleFlywheel(true);
+    } else if(Controller1.ButtonDown.pressing()){
+      toggleFlywheel(false);
+    }
+    if(Controller1.ButtonL1.pressing()){
+      Wings = true;
+    } else if(Controller1.ButtonL2.pressing()){
+      Wings = false;
+    }
     //button state measures whether the button is pressed, so that the function doesn't trigger every frame
-    wait(20, msec); // 1000 divided by wait duration = refresh rate of the code
+    wait(50, msec); // 1000 divided by wait duration = refresh rate of the code
                     // for example, 20 msec = 50hz refresh rate
+                    // if this value is too low, 
   }
 }
 
