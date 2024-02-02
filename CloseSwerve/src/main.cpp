@@ -150,16 +150,17 @@ void correctDrive(motor currentMotor, rotation currentRot, int orient, int turnO
   float difDirection;
   currentDirection = clamp(currentDirection);
   //check if the robot should be in turn mode
-  if(magnitude > 10 && fabs(turnMagnitude) < 10){
+  if(magnitude > 5 && fabs(turnMagnitude) < 5){
     //in drive mode, use both the rotation sensor and the joystick input to find the right direction to face
     //this is what makes the robot "field-centric"
-    difDirection = (currentDirection - clamp(targetDirection));
+    difDirection = clamp(currentDirection - clamp(targetDirection));
     // + clamp(fmod(Inertial.heading(degrees),360))
-  } else if(fabs(turnMagnitude) > 10) {
+  } else if(fabs(turnMagnitude) > 5) {
     // difDirection = (currentDirection - clamp(targetDirection + ((turnMagnitude * 0.45) * (cos((targetDirection + turnOffset2) * (3.14159/180))))));
     difDirection = clamp(currentDirection + clamp((atan2((xRotPoint - x),(yRotPoint - y))) * 180/3.14159265) + 90);
   } else {
     difDirection = 0;
+    currentMotor.stop();
   }
   //Determine the proper drive directions
   //This code is bad. Like really bad. Leave it out of the notebook until it's better
@@ -299,14 +300,17 @@ void autonomous(void) {
   Brain.Screen.clearScreen(color::cyan);
   PnuIntake = true;
   autonDrive(180, 100, 0, 1450, 40, true);
+  Wings = true;
   autonDrive(0, 0, 100, 700, 25, false);
   autonDrive(270, 100, 0, 200, 40, true);
   autonDrive(180, 100, 0, 200, 40, false);
   autonDrive(180, 100, 0, 400, 100, true);
+  Wings = false;
   autonDrive(200, 100, 0, 1000, 40, false);
   autonDrive(0, 0, 100, 300, 25, false);
   autonDrive(0, 100, 0, 300, 25, true);
   autonDrive(0, 0, 100, 325, 25, false);
+  TurnTrain.stop();
 }
 
 void usercontrol(void) {
@@ -327,29 +331,13 @@ void usercontrol(void) {
     //x and y had to be swapped because of how vex handles axes
     float xInput = -Controller1.Axis4.position();
     float yInput = Controller1.Axis3.position();
-    turnMagnitude = Controller1.Axis1.position();
-    float aimAssist = 10;
-    if(turnMagnitude > 100 - aimAssist){
-      turnMagnitude = 100;
-    }
-    if(turnMagnitude < -100 + aimAssist){
-      turnMagnitude = -100;
-    }
-    if(xInput > 100 - aimAssist && fabs(yInput) < aimAssist){
-      xInput = 100;
-      yInput = 0;
-    }
-    if(xInput < -100 + aimAssist && fabs(yInput) < aimAssist){
-      xInput = -100;
-      yInput = 0;
-    }
-    if(yInput > 100 - aimAssist && fabs(xInput) < aimAssist){
+    turnMagnitude = Controller1.Axis1.position()/1.5;
+    float aimAssist = 5;
+    if(fabs(yInput) > aimAssist && fabs(xInput) < aimAssist){
       xInput = 0;
-      yInput = 100;
     }
-    if(yInput < -100 + aimAssist && fabs(xInput) < aimAssist){
-      xInput = 0;
-      yInput = -100;
+    if(fabs(xInput) > aimAssist && fabs(yInput) < aimAssist){
+      yInput = 0;
     }
     //find the direction the stick is pointed in
     targetDirection = atan2(xInput,yInput)* 180.0 / 3.14159265 + 180 + GPSSensor.heading();
@@ -374,12 +362,13 @@ void usercontrol(void) {
     //check if the drive should be in turn mode
     //each drive mode has a different drive function, to account for little differences
     //in the end, if they're still identical I'll merge them to cut down on spaghetti code
-    if(magnitude > 10 && fabs(turnMagnitude) < 10){
+    // if(avgDif < 10){
+    if(magnitude > 5 && fabs(turnMagnitude) < 5){
       //move motors
       float speed = magnitude;
       DriveTrain.setVelocity(speed, percent);
       driveRespecting();
-    } else if(fabs(turnMagnitude) > 10){
+    } else if(fabs(turnMagnitude) > 5){
       DriveBL.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint + 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
       DriveFL.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint - 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
       DriveBR.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint + 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
@@ -408,9 +397,9 @@ void usercontrol(void) {
     } else if(Controller1.ButtonDown.pressing()){
       toggleFlywheel(false);
     }
-    if(Controller1.ButtonL1.pressing()){
+    if(Controller1.ButtonL2.pressing()){
       Wings = true;
-    } else if(Controller1.ButtonL2.pressing()){
+    } else if(Controller1.ButtonL1.pressing()){
       Wings = false;
     }
     //button state measures whether the button is pressed, so that the function doesn't trigger every frame
