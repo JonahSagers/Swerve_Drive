@@ -299,13 +299,24 @@ void turnDrive(){
 void autonomous(void) {
   Brain.Screen.clearScreen(color::cyan);
   PnuIntake = true;
+  // autonDrive(180, 100, 0, 1450, 40, true);
+  // Wings = true;
+  // autonDrive(0, 0, 100, 700, 25, false);
+  // autonDrive(270, 100, 0, 200, 40, true);
+  // autonDrive(180, 100, 0, 200, 40, false);
+  // autonDrive(180, 100, 0, 400, 100, true);
+  // Wings = false;
+  // autonDrive(200, 100, 0, 1000, 40, false);
+  // autonDrive(0, 0, 100, 300, 25, false);
+  // autonDrive(0, 100, 0, 300, 25, true);
+  // autonDrive(0, 0, 100, 325, 25, false);
+  // TurnTrain.stop();
+
   autonDrive(180, 100, 0, 1450, 40, true);
-  Wings = true;
   autonDrive(0, 0, 100, 700, 25, false);
   autonDrive(270, 100, 0, 200, 40, true);
   autonDrive(180, 100, 0, 200, 40, false);
   autonDrive(180, 100, 0, 400, 100, true);
-  Wings = false;
   autonDrive(200, 100, 0, 1000, 40, false);
   autonDrive(0, 0, 100, 300, 25, false);
   autonDrive(0, 100, 0, 300, 25, true);
