@@ -26,7 +26,7 @@ digital_out Wings = digital_out(Brain.ThreeWirePort.B);
 motor_group DriveTrain = motor_group(DriveBL, DriveFL, DriveBR, DriveFR);
 motor_group TurnTrain = motor_group(TurnBL, TurnFL, TurnBR, TurnFR);
 
-rotation RotationBL = rotation(PORT18, true);
+rotation RotationBL = rotation(PORT18, false);
 rotation RotationFL = rotation(PORT16, false);
 rotation RotationBR = rotation(PORT7, false);
 rotation RotationFR = rotation(PORT6, false);

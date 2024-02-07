@@ -26,7 +26,7 @@ digital_out Wings = digital_out(Brain.ThreeWirePort.B);
 motor_group DriveTrain = motor_group(DriveBL, DriveFL, DriveBR, DriveFR);
 motor_group TurnTrain = motor_group(TurnBL, TurnFL, TurnBR, TurnFR);
 
-rotation RotationBL = rotation(PORT18, true);
+rotation RotationBL = rotation(PORT18, false);
 rotation RotationFL = rotation(PORT16, false);
 rotation RotationBR = rotation(PORT7, false);
 rotation RotationFR = rotation(PORT6, false);
@@ -299,28 +299,16 @@ void turnDrive(){
 void autonomous(void) {
   Brain.Screen.clearScreen(color::cyan);
   PnuIntake = true;
-  // autonDrive(180, 100, 0, 1450, 40, true);
   // Wings = true;
-  // autonDrive(0, 0, 100, 700, 25, false);
-  // autonDrive(270, 100, 0, 200, 40, true);
-  // autonDrive(180, 100, 0, 200, 40, false);
-  // autonDrive(180, 100, 0, 400, 100, true);
+  // autonDrive(0, 0, 100, 450, 25, false);
+  // autonDrive(225, 100, 0, 500, 40, true);
+  autonDrive(180, 100, 0, 800, 100, true);
+  autonDrive(180, 100, 0, 400, 50, false);
   // Wings = false;
   // autonDrive(200, 100, 0, 1000, 40, false);
   // autonDrive(0, 0, 100, 300, 25, false);
   // autonDrive(0, 100, 0, 300, 25, true);
   // autonDrive(0, 0, 100, 325, 25, false);
-  // TurnTrain.stop();
-
-  autonDrive(180, 100, 0, 1450, 40, true);
-  autonDrive(0, 0, 100, 700, 25, false);
-  autonDrive(270, 100, 0, 200, 40, true);
-  autonDrive(180, 100, 0, 200, 40, false);
-  autonDrive(180, 100, 0, 400, 100, true);
-  autonDrive(200, 100, 0, 1000, 40, false);
-  autonDrive(0, 0, 100, 300, 25, false);
-  autonDrive(0, 100, 0, 300, 25, true);
-  autonDrive(0, 0, 100, 325, 25, false);
   TurnTrain.stop();
 }
 
