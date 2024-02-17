@@ -18,7 +18,7 @@ motor TurnBR = motor(PORT1, ratio6_1, true);
 motor TurnFR = motor(PORT4, ratio6_1, true);
 //unassigned items are placeheld at 21
 motor Intake = motor(PORT19, ratio6_1, false);
-motor Flywheel = motor(PORT21, ratio6_1, true);
+motor Flywheel = motor(PORT10, ratio6_1, true);
 motor Lift = motor(PORT21, ratio6_1, false);
 digital_out PnuIntake = digital_out(Brain.ThreeWirePort.A);
 digital_out Wings = digital_out(Brain.ThreeWirePort.B);
@@ -54,6 +54,7 @@ bool intakeLock;
 float liftState;
 int flywheelState;
 int flywheelType;
+float flywheelTarget;
 
 void pre_auton(void) {
   // Initializing Robot Configuration. DO NOT REMOVE!
@@ -125,19 +126,23 @@ void toggleLift(){
 void toggleFlywheel(bool flywheelTarget){
   if(flywheelState == false || flywheelType != flywheelTarget){
     if(flywheelTarget){
-      Flywheel.setVelocity(100, percent);
+      // Flywheel.setVelocity(65, percent);
+      flywheelTarget = 65;
       
     } else {
-      Flywheel.setVelocity(-100, percent);
+      flywheelTarget = -65;
+      // Flywheel.setVelocity(-65, percent);
     }
     flywheelType = flywheelTarget;
     if(flywheelState == true){
+      flywheelTarget = 0;
       Flywheel.stop(coast);
       wait(250, msec);
     }
     Flywheel.spin(forward);
     flywheelState = true;
   } else {
+    flywheelTarget = 0;
     Flywheel.stop();
     flywheelState = false;
   }
@@ -292,10 +297,6 @@ void autonDrive(float dir, float targetMagnitude, float targetTurnMagnitude, flo
   DriveTrain.stop();
 }
 
-void turnDrive(){
-
-}
-
 void autonomous(void) {
   Brain.Screen.clearScreen(color::cyan);
   PnuIntake = true;
@@ -346,8 +347,7 @@ void usercontrol(void) {
     correctDrive(TurnFR, RotationFR, 3, 45, 45, 1, 1);
     avgDif /= 4;
   
-    Brain.Screen.print("X: %.2f", GPSSensor.xPosition(mm));
-    Brain.Screen.print("  Y: %.2f", GPSSensor.yPosition(mm));
+    Brain.Screen.print("fly: ", Flywheel.velocity(percent));
     Brain.Screen.newLine();
     
     //check if the drive should be in turn mode
@@ -388,6 +388,9 @@ void usercontrol(void) {
     } else if(Controller1.ButtonDown.pressing()){
       toggleFlywheel(false);
     }
+    // if(flywheelTarget > 0 && ){
+    //   Flywheel.setVelocity(65 + fabs(65-Flywheel.velocity(percent)), percent);
+    // }
     if(Controller1.ButtonL2.pressing()){
       Wings = true;
     } else if(Controller1.ButtonL1.pressing()){

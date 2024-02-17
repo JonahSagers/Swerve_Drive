@@ -18,7 +18,7 @@ motor TurnBR = motor(PORT1, ratio6_1, true);
 motor TurnFR = motor(PORT4, ratio6_1, true);
 //unassigned items are placeheld at 21
 motor Intake = motor(PORT19, ratio6_1, false);
-motor Flywheel = motor(PORT21, ratio6_1, true);
+motor Flywheel = motor(PORT10, ratio6_1, true);
 motor Lift = motor(PORT21, ratio6_1, false);
 digital_out PnuIntake = digital_out(Brain.ThreeWirePort.A);
 digital_out Wings = digital_out(Brain.ThreeWirePort.B);
@@ -125,10 +125,10 @@ void toggleLift(){
 void toggleFlywheel(bool flywheelTarget){
   if(flywheelState == false || flywheelType != flywheelTarget){
     if(flywheelTarget){
-      Flywheel.setVelocity(100, percent);
+      Flywheel.setVelocity(65, percent);
       
     } else {
-      Flywheel.setVelocity(-100, percent);
+      Flywheel.setVelocity(-65, percent);
     }
     flywheelType = flywheelTarget;
     if(flywheelState == true){
@@ -316,7 +316,7 @@ void usercontrol(void) {
   // Flywheel.spin(forward);
   // Flywheel.setVelocity(65, percent);
   // flywheelState = true;
-  toggleFlywheel(true);
+  // toggleFlywheel(true);
   PnuIntake = false;
   wait(20, msec);
   PnuIntake = true;
