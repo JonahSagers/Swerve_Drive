@@ -66,7 +66,10 @@ void pre_auton(void) {
   while(Inertial.isCalibrating() || GPSSensor.isCalibrating()){
     wait(100, msec);
   }
-  Inertial.setRotation(-10, deg);
+  Inertial.setRotation(-33.3, deg);
+  DriveBL.setMaxTorque(99, percent);
+  DriveBR.setMaxTorque(99, percent);
+  DriveFR.setMaxTorque(99, percent);
   Brain.Screen.print(color::cyan);
   // All activities that occur before the competition starts
   // Example: clearing encoders, setting servo positions, ...
@@ -217,7 +220,7 @@ void autonDrive(float dir, float targetMagnitude, float targetTurnMagnitude, flo
   magnitude = targetMagnitude;
   turnMagnitude = targetTurnMagnitude;
   avgDif = 2;
-  targetDirection = dir;
+  targetDirection = clamp(-dir - 180);
   xRotPoint = -sin(fabs(targetDirection) * 3.14159265/180 + 1.570796325) * (magnitude/20) * sign(turnMagnitude);
   yRotPoint = cos(fabs(targetDirection) * 3.14159265/180 + 1.570796325) * (magnitude/20) * sign(turnMagnitude);
   //increase the avgDif cuttoff if we run out of auton time
@@ -235,17 +238,16 @@ void autonDrive(float dir, float targetMagnitude, float targetTurnMagnitude, flo
   }
   TurnTrain.stop();
   float startTime = Brain.Timer;
-  float speed = 0;
-  if(fabs(turnMagnitude) > 0 && fabs(magnitude) > 0){
-    speed = (2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint + 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1);
+  if(fabs(turnMagnitude) > 0){
+    DriveBL.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint + 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
+    DriveFL.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint + 1,2)+ pow(yRotPoint - 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
+    DriveBR.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint + 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
+    DriveFR.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint - 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
   } else if(magnitude > 0){
-    speed = magnitude;
-  } else {
-    speed = turnMagnitude;
+    DriveTrain.setVelocity(magnitude, percent);
   }
-  DriveTrain.setVelocity(speed, percent);
-  driveRespecting();
   while(Brain.Timer < startTime + duration){
+    driveRespecting();
     correctDrive(TurnBL, RotationBL, 0, 225, 225, -1, -1);
     correctDrive(TurnFL, RotationFL, 1, 135, 315, -1, 1);
     correctDrive(TurnBR, RotationBR, 2, 315, 135, 1, -1);
@@ -253,7 +255,8 @@ void autonDrive(float dir, float targetMagnitude, float targetTurnMagnitude, flo
     wait(1, msec);
   }
   waitUntil(Brain.Timer > startTime + duration);
-  DriveTrain.stop();
+  DriveTrain.stop(hold);
+  wait(100, msec);
 }
 
 void TurnTo(float targetRotation){
@@ -266,8 +269,7 @@ void TurnTo(float targetRotation){
   magnitude = 0;
   targetDirection = 0;
   avgDif = 2;
-  printf("Turning\n");
-  while(avgDif > 1){
+  while(avgDif > 1.5){
     avgDif = 0;
     correctDrive(TurnBL, RotationBL, 0, 225, 225, -1, -1);
     correctDrive(TurnFL, RotationFL, 1, 135, 315, -1, 1);
@@ -276,14 +278,12 @@ void TurnTo(float targetRotation){
     avgDif /= 4;
     //this function is stupidly fast, and it terminates properly so idk if it needs a delay
     //it functions off of deltatime by nature, so it doesn't need to be at a fixed interval
-    //wait(1, msec);
+    wait(10, msec);
   }
   TurnTrain.stop();
   driveRespecting();
-  printf("driving\n");
-  while(fabs(clamp(clamp(targetRotation) - clamp(fmod(Inertial.rotation(degrees),360)))) > 0.5){
-    printf("rotation: %f\n", clamp(fmod(Inertial.rotation(degrees),360)));
-    float speed = clamp(clamp(targetRotation) - clamp(fmod(Inertial.rotation(degrees),360)))/2;
+  while(fabs(clamp(clamp(targetRotation) - clamp(fmod(Inertial.rotation(degrees),360)))) > 5){
+    float speed = clamp(clamp(targetRotation) - clamp(fmod(Inertial.rotation(degrees),360)));
     if(DirecBL == forward){
       DriveBL.setVelocity(speed, percent);
     } else {
@@ -310,6 +310,7 @@ void TurnTo(float targetRotation){
     correctDrive(TurnFR, RotationFR, 3, 45, 45, 1, 1);
   }
   DriveTrain.stop(hold);
+  wait(100, msec);
   // if(clamp(clamp(targetRotation) - clamp(currentHeading))){
   //   waitUntil(fmod(Inertial.rotation(degrees),360) > targetRotation);
   // } else {
@@ -321,9 +322,25 @@ void TurnTo(float targetRotation){
 void autonomous(void) {
   Brain.Screen.clearScreen(color::cyan);
   PnuIntake = true;
-  //Direction, magnitude, turnMagnitude, time, speed
+  //Direction, magnitude, turnMagnitude, time
+  autonDrive(46, 50, 0, 4600);
+  TurnTo(-45);
+  autonDrive(0, 50, 0, 600);
+  Wings = true;
+  autonDrive(0, 100, -7, 500);
   autonDrive(0, 50, 0, 1000);
-  autonDrive(180, 50, 0, 400);
+  Wings = false;
+  autonDrive(180, 50, 0, 500);
+  autonDrive(270, 50, 0, 1200);
+  TurnTo(-90);
+  Wings = true;
+  autonDrive(0, 50, 0, 1000);
+  autonDrive(0, 100, 50, 1500);
+  // TurnTo(-45);
+  // autonDrive(0, 50, 0, 1000);
+  // TurnTo(-90);
+  // autonDrive(0, 100, 0, 400);
+  // autonDrive(180, 100, 0, 400);
   TurnTrain.stop();
 }
 
