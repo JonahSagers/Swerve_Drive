@@ -66,7 +66,10 @@ void pre_auton(void) {
   while(Inertial.isCalibrating() || GPSSensor.isCalibrating()){
     wait(100, msec);
   }
-  Inertial.setRotation(-10, deg);
+  DriveBL.setMaxTorque(98, percent);
+  DriveBR.setMaxTorque(98, percent);
+  DriveFR.setMaxTorque(98, percent);
+  // Inertial.setRotation(-10, deg);
   Brain.Screen.print(color::cyan);
   // All activities that occur before the competition starts
   // Example: clearing encoders, setting servo positions, ...
@@ -123,10 +126,10 @@ void toggleFlywheel(bool flywheelTarget){
   if(flywheelState == false || flywheelType != flywheelTarget){
     if(flywheelTarget){
       // Flywheel.setVelocity(75, percent);
-      flywheelValue = 75;
+      flywheelValue = 80;
     } else {
       // Flywheel.setVelocity(-75, percent);
-      flywheelValue = -75;
+      flywheelValue = -80;
     }
     flywheelType = flywheelTarget;
     if(flywheelState == true){
@@ -322,9 +325,16 @@ void autonomous(void) {
   Brain.Screen.clearScreen(color::cyan);
   PnuIntake = true;
   //Direction, magnitude, turnMagnitude, time, speed
-  autonDrive(0, 50, 0, 1000);
-  autonDrive(180, 50, 0, 400);
-  TurnTrain.stop();
+  Wings = true;
+  wait(500, msec);
+  Wings = false;
+  autonDrive(135, 50, 0, 700);
+  autonDrive(180, 110, 0, 1000);
+  autonDrive(0, 50, 0, 400);
+  TurnTo(0);
+  autonDrive(180, 110, 0, 600);
+  autonDrive(0, 50, 0, 400);
+  TurnTrain.stop(); 
 }
 
 void usercontrol(void) {

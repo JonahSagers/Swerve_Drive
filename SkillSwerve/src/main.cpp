@@ -66,7 +66,7 @@ void pre_auton(void) {
   while(Inertial.isCalibrating() || GPSSensor.isCalibrating()){
     wait(100, msec);
   }
-  Inertial.setRotation(-33.3, deg);
+  Inertial.setRotation(-45, deg);
   DriveBL.setMaxTorque(99, percent);
   DriveBR.setMaxTorque(99, percent);
   DriveFR.setMaxTorque(99, percent);
@@ -126,10 +126,10 @@ void toggleFlywheel(bool flywheelTarget){
   if(flywheelState == false || flywheelType != flywheelTarget){
     if(flywheelTarget){
       // Flywheel.setVelocity(75, percent);
-      flywheelValue = 75;
+      flywheelValue = 80;
     } else {
       // Flywheel.setVelocity(-75, percent);
-      flywheelValue = -75;
+      flywheelValue = -80;
     }
     flywheelType = flywheelTarget;
     if(flywheelState == true){
@@ -244,7 +244,11 @@ void autonDrive(float dir, float targetMagnitude, float targetTurnMagnitude, flo
     DriveBR.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint + 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
     DriveFR.setVelocity((2.5 * (6.28318530 * (sqrt(pow(xRotPoint - 1,2)+ pow(yRotPoint - 1,2)))) * sign(magnitude) * sign(turnMagnitude)) + turnMagnitude/(magnitude + 1), percent);
   } else if(magnitude > 0){
-    DriveTrain.setVelocity(magnitude, percent);
+    // DriveTrain.setVelocity(magnitude, percent);
+    DriveBL.setVelocity(magnitude * 0.9, percent);
+    DriveFL.setVelocity(magnitude * 1.04, percent);
+    DriveBR.setVelocity(magnitude * 0.9, percent);
+    DriveFR.setVelocity(magnitude * 0.9, percent);
   }
   while(Brain.Timer < startTime + duration){
     driveRespecting();
@@ -321,21 +325,37 @@ void TurnTo(float targetRotation){
 
 void autonomous(void) {
   Brain.Screen.clearScreen(color::cyan);
+  toggleFlywheel(false);
   PnuIntake = true;
+  while(true){
+    if(flywheelValue > 0){
+      if(Flywheel.velocity(percent) < flywheelValue - 1){
+        Flywheel.setVelocity(100, percent);
+      } else {
+        Flywheel.setVelocity(flywheelValue, percent);
+      }
+    } else if(flywheelValue < 0){
+      if(Flywheel.velocity(percent) > flywheelValue + 1){
+        Flywheel.setVelocity(-100, percent);
+      } else {
+        Flywheel.setVelocity(flywheelValue, percent);
+      }
+    }
+  }
   //Direction, magnitude, turnMagnitude, time
-  autonDrive(46, 50, 0, 4600);
-  TurnTo(-45);
-  autonDrive(0, 50, 0, 600);
-  Wings = true;
-  autonDrive(0, 100, -7, 500);
-  autonDrive(0, 50, 0, 1000);
-  Wings = false;
-  autonDrive(180, 50, 0, 500);
-  autonDrive(270, 50, 0, 1200);
-  TurnTo(-90);
-  Wings = true;
-  autonDrive(0, 50, 0, 1000);
-  autonDrive(0, 100, 50, 1500);
+  // autonDrive(45, 50, 0, 4500);
+  // TurnTo(-45);
+  // autonDrive(0, 50, 0, 400);
+  // Wings = true;
+  // autonDrive(0, 100, -7, 500);
+  // autonDrive(0, 50, 0, 1000);
+  // Wings = false;
+  // autonDrive(180, 50, 0, 500);
+  // autonDrive(270, 50, 0, 1200);
+  // TurnTo(-90);
+  // Wings = true;
+  // autonDrive(0, 50, 0, 1000);
+  // autonDrive(0, 100, 50, 1500);
   // TurnTo(-45);
   // autonDrive(0, 50, 0, 1000);
   // TurnTo(-90);
@@ -357,6 +377,7 @@ void usercontrol(void) {
   PnuIntake = false;
   wait(20, msec);
   PnuIntake = true;
+  toggleFlywheel(false);
   // User control code here, inside the loop
   while(1) {
     //x and y had to be swapped because of how vex handles axes
