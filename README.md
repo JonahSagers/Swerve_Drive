@@ -1,9 +1,8 @@
-Hi!
+Dode for the 91915B Over Under swerve drive as featured on First Updates Now [https://www.youtube.com/watch?v=7YzPnj5M7rk](url)
 
-This is code for the 91915B swerve drive
+![swerve_drive](https://github.com/user-attachments/assets/4e007bcd-7195-414a-8453-231643f0636c)
+It dances! It swerves!
 
-All changes are made first to the ManualSwerve folder, then to FarSwerve and CloseSwerve.
+The control scheme is my own variation on the arcade setup, and it has optional field-centric control if a mounted IMU is enabled.
 
-Experimental versions:
-- SkillSwerve will be used for a skills auton eventually, but it's not quite finished yet.
-- FieldSwerve is a test for field-centric control, but the IMU hasn't been tuned yet, and it loses accuracy over time.
+For a better visualization on how the wheel orientations work, I made a desmos graph of it here: [https://www.desmos.com/calculator/6dmdv8sfv2](url)
